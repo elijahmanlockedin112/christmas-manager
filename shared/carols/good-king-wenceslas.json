@@ -1,0 +1,20 @@
+{
+  "id": "good-king-wenceslas",
+  "title": "Good King Wenceslas",
+  "by": "John Mason Neale (tune Tempus adest floridum)",
+  "year": 1853,
+  "bpm": 112,
+  "meter": 4,
+  "instrumental": false,
+  "mood": "bright",
+  "lines": [
+    { "melody": "C4:1 C4:1 C4:1 D4:1 | C4:1 C4:1 G3:2", "chords": "C:4 | C:2 G:2", "lyrics": "Good King Wen-ces-las looked out" },
+    { "melody": "A3:1 G3:1 A3:1 B3:1 | C4:2 C4:2", "chords": "F:2 G:2 | C:4", "lyrics": "On the feast of Ste-phen," },
+    { "melody": "C4:1 C4:1 C4:1 D4:1 | C4:1 C4:1 G3:2", "chords": "C:4 | C:2 G:2", "lyrics": "When the snow lay round a-bout," },
+    { "melody": "A3:1 G3:1 A3:1 B3:1 | C4:2 C4:2", "chords": "F:2 G:2 | C:4", "lyrics": "Deep and crisp and e-ven;" },
+    { "melody": "G4:1 F4:1 E4:1 D4:1 | E4:1 D4:1 C4:2", "chords": "C:2 G:2 | C:4", "lyrics": "Bright-ly shone the moon that night," },
+    { "melody": "A3:1 G3:1 A3:1 B3:1 | C4:2 C4:2", "chords": "F:2 G:2 | C:4", "lyrics": "Though the frost was cru-el," },
+    { "melody": "G3:1 G3:1 A3:1 B3:1 | C4:1 C4:1 D4:2", "chords": "C:2 F:2 | C:2 G:2", "lyrics": "When a poor man came in sight," },
+    { "melody": "G4:1 F4:1 E4:1 D4:1 | C4:2 F4:2 | C4:4", "chords": "C:2 G:2 | Am:2 F:2 | C:4", "lyrics": "Gath-'ring win-ter fu _ el." }
+  ]
+}

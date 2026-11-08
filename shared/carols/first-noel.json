@@ -1,0 +1,12 @@
+{ "hidden": true,
+  "id": "first-noel", "title": "The First Noel", "by": "Traditional English carol", "year": 1823,
+  "bpm": 84, "meter": 3, "instrumental": false, "mood": "gentle",
+  "lines": [
+    { "melody": "E4:0.5 D4:0.5 | C4:1 D4:1 E4:1 | F4:1 G4:1 A4:1 | G4:3", "chords": "C:1 | C:3 | F:3 | C:3", "lyrics": "The first No el the an gel did say," },
+    { "melody": "E4:0.5 D4:0.5 | C4:1 D4:1 E4:1 | F4:1 G4:1 A4:1 | G4:1 F4:1 E4:1 | D4:3", "chords": "C:1 | C:3 | F:3 | C:3 | G:3", "lyrics": "Was to cer tain poor shep herds in fields as they lay," },
+    { "melody": "G4:1 | A4:1 B4:1 C5:1 | B4:1 A4:1 G4:1 | A4:1 G4:1 F4:1", "chords": "C:1 | C:3 | G:3 | F:3", "lyrics": "In fields where they lay a keep ing their sheep," },
+    { "melody": "D4:1 | E4:1 F4:1 G4:1 | F4:1 E4:1 D4:1 | E4:1 D4:1 C4:1", "chords": "G:1 | C:3 | G:3 | C:3", "lyrics": "On a cold win ter's night that was so deep." },
+    { "melody": "G5:1 A5:2 | B5:1 C6:2 | B5:1 A5:2 | G5:1 E5:2", "chords": "C:3 | C:3 | G:3 | C:3", "lyrics": "No-el, No-el, No-el, No-el," },
+    { "melody": "G5:1 A5:1 B5:1 | C6:2 B5:1 | A5:2 G5:1 | C5:3", "chords": "C:3 | C:3 | F:2 G:1 | C:3", "lyrics": "Born is the King of Is-ra-el." }
+  ]
+}

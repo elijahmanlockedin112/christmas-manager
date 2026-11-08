@@ -1,0 +1,22 @@
+{
+  "name": "christmas-manager",
+  "version": "1.0.0",
+  "private": true,
+  "description": "North Pole Control: Christmas tree lights, TV stage, Alexa, family party games.",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server/index.mjs",
+    "test": "node --test \"test/*.test.mjs\"",
+    "e2e": "node test/e2e/run.mjs",
+    "carols": "node tools/validate-carols.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.6.0",
+    "alexa-remote2": "^8.1.1",
+    "qrcode-generator": "^1.4.4",
+    "zod": "^4.6.7"
+  }
+}

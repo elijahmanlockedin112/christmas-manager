@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0b1510">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Join the game · North Pole</title>
+<link rel="icon" href="/web/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/web/app.css">
+<style>
+  html, body { height: 100%; }
+  body { display: flex; flex-direction: column; }
+  .p-top { display: flex; justify-content: space-between; align-items: center; padding: max(14px, env(safe-area-inset-top)) 18px 10px; border-bottom: 1px solid var(--line); }
+  .p-top .me { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+  .p-top .me i { width: 14px; height: 14px; border-radius: 50%; }
+  .p-main { flex: 1; display: flex; flex-direction: column; padding: 20px 18px max(20px, env(safe-area-inset-bottom)); gap: 14px; }
+  .p-title { font-family: var(--serif); font-size: 30px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.05; }
+  .p-sub { color: var(--muted); font-size: 15px; }
+  .answers { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: auto; }
+  .ans { min-height: 72px; border-radius: 14px; display: flex; align-items: center; gap: 14px; padding: 12px 16px; font-size: 18px; font-weight: 600; text-align: left; color: #fff; }
+  .ans b { font-family: var(--serif); font-size: 24px; width: 30px; flex: none; }
+  .ans.picked { outline: 3px solid #fff; outline-offset: 2px; }
+  .ans.dim { opacity: 0.35; }
+  .buzz { flex: 1; border-radius: 50%; aspect-ratio: 1; max-height: 64vh; margin: auto; width: min(82vw, 64vh); display: grid; place-items: center; font-family: var(--serif); font-size: 56px; font-weight: 800; color: #fff; letter-spacing: -0.02em; box-shadow: inset 0 -10px 0 rgba(0, 0, 0, 0.25), 0 10px 30px rgba(0, 0, 0, 0.4); transition: transform .06s; }
+  .buzz:active { transform: scale(0.96); box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.25); }
+  .wyrb { flex: 1; border-radius: 16px; padding: 20px; font-family: var(--serif); font-size: 24px; font-weight: 600; text-align: left; color: #fff; display: flex; align-items: center; }
+  .big-msg { margin: auto 0; text-align: center; }
+  .big-msg .p-title { font-size: 40px; }
+  .teams-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .teams-pick button { height: 56px; border-radius: 12px; font-weight: 700; color: #fff; border: 3px solid transparent; }
+  .teams-pick button.on { border-color: #fff; }
+  .card-reveal { margin-top: 10px; border-radius: 16px; background: var(--red); color: #fff; padding: 30px 20px; text-align: center; min-height: 180px; display: grid; place-items: center; touch-action: none; }
+  .card-reveal .p-title { font-size: 44px; }
+  .card-reveal.hidden .p-title { filter: blur(18px); }
+  .cheer { margin-top: auto; }
+</style>
+</head>
+<body>
+<div class="p-top"><div class="brand" style="font-size:18px">North Pole <em>Games</em></div><div class="me" id="me"></div></div>
+<main class="p-main" id="main"></main>
+<div class="toast" id="toast"></div>
+<script type="module">
+import { connect, $, esc, pid as getPid } from '/web/lib/net.js';
+const PID = getPid();
+let S = null, me = null, joined = false, view = 'game', picked = null, lastRound = '';
+try { me = JSON.parse(localStorage.getItem('np-me') || 'null'); } catch {}
+const net = connect({ role: 'player', pid: PID, onState: s => { S = s; render(); }, onStatus: on => { if (on && me) net.send({ type: 'join', name: me.name, team: me.team }); }, onMessage: m => {
+  if (m.type === 'joined') { joined = true; me = { ...me, ...m.player }; try { localStorage.setItem('np-me', JSON.stringify(me)); } catch {} render(); }
+  if (m.type === 'you-got-it') toast(`You got it! +${m.pts}`);
+}});
+function toast(t) { const el = $('#toast'); el.textContent = t; el.className = 'toast show'; setTimeout(() => (el.className = 'toast'), 2400); }
+const team = id => S?.teams.find(t => t.id === id) || { color: '#555', name: '' };
+const LC = ['#d6312b', '#1f9a52', '#c98d16', '#3a7be0'];
+function render() {
+  if (!S) return;
+  const mine = S.players.find(p => p.id === PID);
+  $('#me').innerHTML = mine ? `<i style="background:${team(mine.team).color}"></i>${esc(mine.name)}<span class="num muted">${mine.score || 0}</span>` : '';
+  const m = $('#main');
+  if (!mine) return renderJoin(m);
+  if (view === 'santa') return renderSanta(m);
+  const g = S.game;
+  const round = g ? `${g.kind}${g.round}${g.phase}` : '';
+  if (round !== lastRound) { if (!g || g.phase === 'question' || g.phase === 'vote' || g.phase === 'playing' && !g.wrong?.length) picked = null; lastRound = round; }
+  if (!g) {
+    m.innerHTML = `<div class="big-msg"><div class="p-title">You're in, ${esc(mine.name)}.</div><p class="p-sub">${esc(team(mine.team).name)}. Watch the TV, the next game starts there.</p></div>
+      <div class="btns">${S.secretSanta ? '<button class="btn light" id="ssBtn">Secret Santa</button>' : ''}<button class="btn" id="elfBtn">My elf name</button><a class="btn" href="/charades">Charades</a></div>
+      <button class="btn cheer" id="cheer" style="height:64px;background:${team(mine.team).color};border-color:transparent;color:#fff;font-weight:700">Flash the tree ${esc(team(mine.team).name.replace('Team ', ''))} colour</button>`;
+    $('#cheer').onclick = () => net.send({ type: 'cheer' });
+    $('#elfBtn').onclick = async () => { const r = await net.act('elf.name', { name: mine.name }); toast(`${r.elf}, ${r.job}`); };
+    if ($('#ssBtn')) $('#ssBtn').onclick = () => { view = 'santa'; render(); };
+    return;
+  }
+  if (g.phase === 'lobby') { m.innerHTML = `<div class="big-msg"><div class="p-title">Get ready</div><p class="p-sub">${esc(team(mine.team).name)}. The game is about to start on the TV.</p></div>${teamPicker(mine)}`; bindTeams(); return; }
+  if (g.phase === 'final') { const rank = [...S.players].sort((a, b) => b.score - a.score).findIndex(p => p.id === PID) + 1; const w = S.teams.find(t => t.id === g.winner); m.innerHTML = `<div class="big-msg"><div class="p-title" style="color:${w?.color || 'var(--gold)'}">${w ? esc(w.name) + ' wins' : 'Game over'}</div><p class="p-sub">You finished #${rank} with ${mine.score} points.</p></div>`; return; }
+  if (g.kind === 'trivia') {
+    if (g.phase === 'question') {
+      m.innerHTML = `<div class="p-sub">${esc(g.category)}</div><div class="p-title" style="font-size:22px">${esc(g.q)}</div><div class="answers">${g.choices.map((c, i) => `<button class="ans${picked === i ? ' picked' : picked != null ? ' dim' : ''}" data-i="${i}" style="background:${LC[i]}"><b>${'ABCD'[i]}</b>${esc(c)}</button>`).join('')}</div>`;
+      m.querySelectorAll('.ans').forEach(b => (b.onclick = () => { if (picked != null) return; picked = +b.dataset.i; net.send({ type: 'answer', choice: picked }); render(); }));
+    } else {
+      const gained = g.gained?.[PID];
+      m.innerHTML = `<div class="big-msg"><div class="p-title" style="color:${gained ? '#3fd17c' : '#ff8a80'}">${gained ? `+${gained}` : picked == null ? 'Too slow!' : 'Not quite'}</div><p class="p-sub">The answer was ${esc(g.choices[g.answer])}.</p></div>`;
+    }
+  } else if (g.kind === 'name-that-song') {
+    const locked = g.wrong?.includes(PID);
+    if (g.phase === 'playing') {
+      m.innerHTML = locked ? `<div class="big-msg"><div class="p-title">Locked out</div><p class="p-sub">Wrong guess. Wait for the next song.</p></div>` : `<p class="p-sub" style="text-align:center">Know it? Hit the button.</p><button class="buzz" id="buzz" style="background:${team(mine.team).color}">BUZZ</button>`;
+      $('#buzz') && ($('#buzz').onpointerdown = e => { e.preventDefault(); net.send({ type: 'buzz' }); navigator.vibrate?.(60); });
+    } else if (g.phase === 'buzzed' && g.buzz.pid === PID) {
+      m.innerHTML = `<div class="p-title">Which song is it?</div><div class="answers">${g.choices.map((c, i) => `<button class="ans" data-i="${i}" style="background:${LC[i]}"><b>${'ABCD'[i]}</b><span>${esc(c.title)}<br><small style="font-weight:400;opacity:.8">${esc(c.artist || '')}</small></span></button>`).join('')}</div>`;
+      m.querySelectorAll('.ans').forEach(b => (b.onclick = () => net.send({ type: 'pick', choice: +b.dataset.i })));
+    } else if (g.phase === 'buzzed') {
+      m.innerHTML = `<div class="big-msg"><div class="p-title" style="color:${team(g.buzz.team).color}">${esc(g.buzz.name)} buzzed in</div><p class="p-sub">Fingers crossed they're wrong…</p></div>`;
+    } else {
+      m.innerHTML = `<div class="big-msg"><div class="p-sub">It was</div><div class="p-title">${esc(g.item?.title || '')}</div><p class="p-sub">${esc(g.item?.artist || '')}</p></div>`;
+    }
+  } else if (g.kind === 'would-you-rather') {
+    if (g.phase === 'vote') {
+      m.innerHTML = `<div class="p-sub">Would you rather…</div><button class="wyrb${picked === 'b' ? ' dim' : ''}" data-s="a" style="background:#a3221d;${picked === 'a' ? 'outline:3px solid #fff' : ''}">${esc(g.a)}</button><div style="text-align:center;font-family:var(--serif);font-style:italic;color:var(--muted)">or</div><button class="wyrb" data-s="b" style="background:#13693a;${picked === 'b' ? 'outline:3px solid #fff' : ''}">${esc(g.b)}</button>`;
+      m.querySelectorAll('.wyrb').forEach(b => (b.onclick = () => { picked = b.dataset.s; net.send({ type: 'vote', side: picked }); render(); }));
+    } else m.innerHTML = `<div class="big-msg"><div class="p-title">Look at the tree!</div><p class="p-sub">Red is A, green is B.</p></div>`;
+  } else if (g.kind === 'pictionary') {
+    if (g.phase === 'draw') {
+      const got = g.correct?.some(c => c.name === mine.name);
+      m.innerHTML = got ? `<div class="big-msg"><div class="p-title" style="color:#3fd17c">You got it!</div><p class="p-sub">Watch the others squirm.</p></div>` : `<div class="p-title" style="font-size:24px">What's being drawn?</div><p class="p-sub num" style="font-size:22px;letter-spacing:4px">${esc(g.mask)}</p><div class="inline" style="margin-top:auto"><input type="text" id="guess" placeholder="Your guess" autocomplete="off" autocapitalize="off"><button class="btn primary" id="send">Guess</button></div>`;
+      const send = () => { const v = $('#guess').value.trim(); if (v) { net.send({ type: 'guess', text: v }); $('#guess').value = ''; } };
+      if ($('#send')) { $('#send').onclick = send; $('#guess').onkeydown = e => e.key === 'Enter' && send(); }
+    } else m.innerHTML = `<div class="big-msg"><div class="p-sub">The word was</div><div class="p-title">${esc(g.word || '')}</div></div>`;
+  }
+}
+function teamPicker(mine) { return `<div class="teams-pick" style="margin-top:auto">${S.teams.map(t => `<button data-t="${t.id}" class="${mine?.team === t.id ? 'on' : ''}" style="background:${t.color}">${esc(t.name)}</button>`).join('')}</div>`; }
+function bindTeams() { document.querySelectorAll('[data-t]').forEach(b => (b.onclick = () => { me = { ...me, team: b.dataset.t }; net.send({ type: 'join', name: me.name, team: me.team }); })); }
+function renderJoin(m) {
+  if (m.dataset.v === 'join') return;
+  m.dataset.v = 'join';
+  m.innerHTML = `<div class="p-title">Join the game</div><p class="p-sub">Pick a name the TV can show.</p><label class="field"><span>Your name</span><input type="text" id="nm" maxlength="16" value="${esc(me?.name || '')}" autocomplete="off"></label><div class="p-sub">Your team</div>${teamPicker(me)}<button class="btn primary" id="go" style="height:56px;margin-top:10px">Join</button>`;
+  document.querySelectorAll('[data-t]').forEach(b => (b.onclick = () => { me = { ...(me || {}), team: b.dataset.t }; document.querySelectorAll('[data-t]').forEach(x => x.classList.toggle('on', x === b)); }));
+  $('#go').onclick = () => { const name = $('#nm').value.trim(); if (!name) return toast('Type your name'); me = { ...(me || {}), name }; m.dataset.v = ''; net.send({ type: 'join', name, team: me.team }); };
+}
+function renderSanta(m) {
+  const ss = S.secretSanta;
+  if (!ss) { view = 'game'; return render(); }
+  m.innerHTML = `<div class="p-title">Secret Santa</div><p class="p-sub">Tap your own name. Keep the screen to yourself.</p><div class="players">${ss.names.map(n => `<button class="player" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div><div id="ssOut"></div><button class="btn ghost" id="back" style="margin-top:auto">Back</button>`;
+  $('#back').onclick = () => { view = 'game'; render(); };
+  m.querySelectorAll('[data-n]').forEach(b => (b.onclick = async () => {
+    if (!confirm(`Are you ${b.dataset.n}?`)) return;
+    const r = await fetch('/api/secretsanta/reveal', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: b.dataset.n }) }).then(r => r.json());
+    if (r.error) return toast(r.error);
+    $('#ssOut').innerHTML = `<div class="card-reveal hidden" id="card"><div><div class="p-sub" style="color:#ffd9d4">Press and hold to see who you're buying for</div><div class="p-title">${esc(r.receiver)}</div></div></div>`;
+    const card = $('#card');
+    card.onpointerdown = () => card.classList.remove('hidden');
+    card.onpointerup = card.onpointercancel = card.onpointerleave = () => card.classList.add('hidden');
+  }));
+}
+</script>
+</body>
+</html>

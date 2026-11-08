@@ -1,0 +1,14 @@
+{ "hidden": true,
+  "id": "away-in-a-manger", "title": "Away in a Manger", "by": "William J. Kirkpatrick (Cradle Song)", "year": 1895,
+  "bpm": 72, "meter": 3, "instrumental": false, "mood": "gentle",
+  "lines": [
+    { "melody": "C4:1 | F4:1.5 F4:0.5 F4:1 | A4:2 G4:1 | C5:1.5 A4:0.5 F4:1 | G4:2 F4:1", "chords": "F:1 | F:3 | F:3 | F:3 | C:2 F:1", "lyrics": "A way in a man ger, no crib for a bed," },
+    { "melody": "C4:1 | F4:1.5 F4:0.5 F4:1 | A4:2 G4:1 | C5:1.5 A4:0.5 F4:1 | G4:2 F4:1", "chords": "F:1 | F:3 | F:3 | F:3 | C:2 F:1", "lyrics": "The lit tle Lord Je sus laid down his sweet head." },
+    { "melody": "C5:1 | C5:1.5 C5:0.5 C5:1 | D5:2 C5:1 | Bb4:1.5 A4:0.5 G4:1 | A4:2 G4:1", "chords": "F:1 | F:3 | Bb:3 | Bb:3 | C:3", "lyrics": "The stars in the bright sky looked down where He lay," },
+    { "melody": "C4:1 | F4:1.5 F4:0.5 F4:1 | A4:2 G4:1 | C5:1.5 A4:0.5 F4:1 | G4:1 F4:2", "chords": "F:1 | F:3 | F:3 | F:3 | C:1 F:2", "lyrics": "The lit tle Lord Je sus a sleep on the hay." },
+    { "melody": "C4:1 | F4:1.5 F4:0.5 F4:1 | A4:2 G4:1 | C5:1.5 A4:0.5 F4:1 | G4:2 F4:1", "chords": "F:1 | F:3 | F:3 | F:3 | C:2 F:1", "lyrics": "The cat tle are low ing, the ba by a wakes," },
+    { "melody": "C4:1 | F4:1.5 F4:0.5 F4:1 | A4:2 G4:1 | C5:1.5 A4:0.5 F4:1 | G4:2 F4:1", "chords": "F:1 | F:3 | F:3 | F:3 | C:2 F:1", "lyrics": "But lit tle Lord Je sus no cry ing he makes." },
+    { "melody": "C5:1 | C5:1.5 C5:0.5 C5:1 | D5:2 C5:1 | Bb4:1.5 A4:0.5 G4:1 | A4:2 G4:1", "chords": "F:1 | F:3 | Bb:3 | Bb:3 | C:3", "lyrics": "I love thee, Lord Je sus, look down from the sky," },
+    { "melody": "C4:1 | F4:1.5 F4:0.5 F4:1 | A4:2 G4:1 | C5:1.5 A4:0.5 F4:1 | G4:1 F4:2", "chords": "F:1 | F:3 | F:3 | F:3 | C:1 F:2", "lyrics": "And stay by my cra dle till morn ing is nigh." }
+  ]
+}

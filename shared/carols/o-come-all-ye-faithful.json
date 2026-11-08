@@ -1,0 +1,13 @@
+{ "hidden": true,
+  "id": "o-come-all-ye-faithful", "title": "O Come, All Ye Faithful", "by": "John Francis Wade; English by Frederick Oakeley", "year": 1751,
+  "bpm": 92, "meter": 4, "instrumental": false, "mood": "grand",
+  "lines": [
+    { "melody": "G4:2 G4:1 D4:1 | G4:1 A4:1 D4:2", "chords": "G:4 | G:2 D:2", "lyrics": "O come all ye faith ful," },
+    { "melody": "G4:1 A4:1 B4:1 G4:1 | A4:2 G4:2", "chords": "G:4 | D:2 G:2", "lyrics": "joy ful and tri umph ant," },
+    { "melody": "G4:1 A4:1 B4:2 | G4:1 A4:1 B4:2 | C5:1 B4:1 A4:1 G4:1", "chords": "G:4 | G:4 | C:2 G:2", "lyrics": "O come ye, O come ye to Beth le hem;" },
+    { "melody": "B4:1 B4:1 C5:1 D5:1 | B4:1 B4:1 B4:1 A4:1 | A4:1 B4:1 G4:2", "chords": "G:4 | G:2 D:2 | D:2 G:2", "lyrics": "Come and be hold him, born the King of an gels;" },
+    { "melody": "G4:1 G4:1 G4:1 G4:1 | A4:1 A4:1 B4:2", "chords": "G:4 | D:2 G:2", "lyrics": "O come let us a dore him," },
+    { "melody": "G4:1 G4:1 G4:1 G4:1 | A4:1 A4:1 B4:2", "chords": "G:4 | D:2 G:2", "lyrics": "O come let us a dore him," },
+    { "melody": "G4:1 G4:1 G4:1 G4:1 | A4:1 A4:1 B4:2 | B4:2 A4:1 G4:1", "chords": "G:4 | D:2 G:2 | G:4", "lyrics": "O come let us a-dore him, Christ the Lord." }
+  ]
+}

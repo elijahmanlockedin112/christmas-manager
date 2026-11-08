@@ -1,0 +1,122 @@
+{ "hidden": true,
+  "id": "trepak",
+  "title": "Russian Dance (Trepak)",
+  "by": "Pyotr Ilyich Tchaikovsky (The Nutcracker)",
+  "year": 1892,
+  "bpm": 140,
+  "meter": 2,
+  "instrumental": true,
+  "mood": "bright",
+  "lines": [
+    {
+      "melody": "G4:0.5 G4:0.5 B4:0.5 D5:0.5 | G5:1 D5:1",
+      "chords": "G:4",
+      "lyrics": ""
+    },
+    {
+      "melody": "C5:0.5 C5:0.5 E5:0.5 C5:0.5 | B4:1 G4:1",
+      "chords": "C:2 | G:2",
+      "lyrics": ""
+    },
+    {
+      "melody": "A4:0.5 A4:0.5 C5:0.5 E5:0.5 | D5:1 B4:1",
+      "chords": "D7:2 | G:2",
+      "lyrics": ""
+    },
+    {
+      "melody": "B4:0.5 D5:0.5 G5:0.5 D5:0.5 | G4:2",
+      "chords": "G:2 | G:2",
+      "lyrics": ""
+    },
+    {
+      "melody": "G4:0.5 G4:0.5 B4:0.5 D5:0.5 | G5:1 D5:1",
+      "chords": "G:4",
+      "lyrics": ""
+    },
+    {
+      "melody": "C5:0.5 C5:0.5 E5:0.5 C5:0.5 | B4:1 G4:1",
+      "chords": "C:2 | G:2",
+      "lyrics": ""
+    },
+    {
+      "melody": "A4:0.5 A4:0.5 C5:0.5 E5:0.5 | D5:1 B4:1",
+      "chords": "D7:2 | G:2",
+      "lyrics": ""
+    },
+    {
+      "melody": "B4:0.5 D5:0.5 G5:0.5 D5:0.5 | G4:2",
+      "chords": "G:2 | G:2",
+      "lyrics": ""
+    },
+    {
+      "melody": "D5:0.5 E5:0.5 F#5:0.5 G5:0.5 | A5:0.5 B5:0.5 A5:0.5 G5:0.5",
+      "chords": "G:4",
+      "lyrics": ""
+    },
+    {
+      "melody": "F#5:0.5 G5:0.5 F#5:0.5 E5:0.5 | D5:1 R:1",
+      "chords": "D7:4",
+      "lyrics": ""
+    },
+    {
+      "melody": "D5:0.5 E5:0.5 F#5:0.5 G5:0.5 | A5:0.5 B5:0.5 A5:0.5 G5:0.5",
+      "chords": "G:4",
+      "lyrics": ""
+    },
+    {
+      "melody": "D5:0.5 C5:0.5 B4:0.5 A4:0.5 | G4:2",
+      "chords": "G:4",
+      "lyrics": ""
+    },
+    {
+      "melody": "G4:0.5 G4:0.5 B4:0.5 D5:0.5 | G5:1 D5:1",
+      "chords": "G:4",
+      "lyrics": ""
+    },
+    {
+      "melody": "C5:0.5 C5:0.5 E5:0.5 C5:0.5 | B4:1 G4:1",
+      "chords": "C:2 | G:2",
+      "lyrics": ""
+    },
+    {
+      "melody": "A4:0.5 A4:0.5 C5:0.5 E5:0.5 | D5:1 B4:1",
+      "chords": "D7:2 | G:2",
+      "lyrics": ""
+    },
+    {
+      "melody": "B4:0.5 D5:0.5 G5:0.5 D5:0.5 | G4:2",
+      "chords": "G:2 | G:2",
+      "lyrics": ""
+    },
+    {
+      "melody": "D5:0.5 E5:0.5 F#5:0.5 G5:0.5 | A5:0.5 B5:0.5 A5:0.5 G5:0.5",
+      "chords": "G:4",
+      "lyrics": ""
+    },
+    {
+      "melody": "F#5:0.5 G5:0.5 F#5:0.5 E5:0.5 | D5:1 R:1",
+      "chords": "D7:4",
+      "lyrics": ""
+    },
+    {
+      "melody": "D5:0.5 E5:0.5 F#5:0.5 G5:0.5 | A5:0.5 B5:0.5 A5:0.5 G5:0.5",
+      "chords": "G:4",
+      "lyrics": ""
+    },
+    {
+      "melody": "D5:0.5 C5:0.5 B4:0.5 A4:0.5 | G4:2",
+      "chords": "G:4",
+      "lyrics": ""
+    },
+    {
+      "melody": "G4:0.25 A4:0.25 B4:0.25 C5:0.25 D5:0.25 E5:0.25 F#5:0.25 G5:0.25 | G5:0.25 F#5:0.25 E5:0.25 D5:0.25 C5:0.25 B4:0.25 A4:0.25 G4:0.25",
+      "chords": "G:4",
+      "lyrics": ""
+    },
+    {
+      "melody": "G4:0.5 B4:0.5 D5:0.5 G5:0.5 | G5:2",
+      "chords": "G:4",
+      "lyrics": ""
+    }
+  ]
+}

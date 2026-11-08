@@ -1,0 +1,35 @@
+{
+  "id": "silent-night",
+  "title": "Silent Night",
+  "by": "Franz Gruber (1818), English words John Freeman Young (1859)",
+  "year": 1818,
+  "bpm": 76,
+  "meter": 3,
+  "instrumental": false,
+  "mood": "gentle",
+  "lines": [
+    { "melody": "G4:1.5 A4:0.5 G4:1 | E4:3", "chords": "C:3 | C:3", "lyrics": "Si-lent night _" },
+    { "melody": "G4:1.5 A4:0.5 G4:1 | E4:3", "chords": "C:3 | C:3", "lyrics": "Ho-ly night _" },
+    { "melody": "D5:2 D5:1 | B4:3", "chords": "G:3 | G:3", "lyrics": "All is calm" },
+    { "melody": "C5:2 C5:1 | G4:3", "chords": "C:3 | C:3", "lyrics": "all is bright" },
+    { "melody": "A4:2 A4:1 | C5:1.5 B4:0.5 A4:1", "chords": "F:3 | C:3", "lyrics": "Round yon vir-gin _" },
+    { "melody": "G4:1.5 A4:0.5 G4:1 | E4:3", "chords": "C:3 | C:3", "lyrics": "moth-er and child" },
+    { "melody": "A4:2 A4:1 | C5:1.5 B4:0.5 A4:1", "chords": "F:3 | C:3", "lyrics": "Ho-ly in-fant so" },
+    { "melody": "G4:1.5 A4:0.5 G4:1 | E4:3", "chords": "C:3 | C:3", "lyrics": "ten-der and mild" },
+    { "melody": "D5:2 D5:1 | F5:1.5 D5:0.5 B4:1 | C5:3", "chords": "G:3 | G7:3 | C:3", "lyrics": "Sleep in heav-en-ly peace" },
+    { "melody": "E5:2 C5:1 | G4:1.5 E4:0.5 G4:1", "chords": "C:3 | C:3", "lyrics": "Sleep in heav-en-ly" },
+    { "melody": "F4:2 D4:1 | C4:3", "chords": "G7:3 | C:3", "lyrics": "peace _ _" },
+
+    { "melody": "G4:1.5 A4:0.5 G4:1 | E4:3", "chords": "C:3 | C:3", "lyrics": "Si-lent night _" },
+    { "melody": "G4:1.5 A4:0.5 G4:1 | E4:3", "chords": "C:3 | C:3", "lyrics": "Ho-ly night _" },
+    { "melody": "D5:2 D5:1 | B4:3", "chords": "G:3 | G:3", "lyrics": "Shep-herds quake" },
+    { "melody": "C5:2 C5:1 | G4:3", "chords": "C:3 | C:3", "lyrics": "at the sight" },
+    { "melody": "A4:2 A4:1 | C5:1.5 B4:0.5 A4:1", "chords": "F:3 | C:3", "lyrics": "Glo-ries stream from heav'n" },
+    { "melody": "G4:1.5 A4:0.5 G4:1 | E4:3", "chords": "C:3 | C:3", "lyrics": "a-far _ _" },
+    { "melody": "A4:2 A4:1 | C5:1.5 B4:0.5 A4:1", "chords": "F:3 | C:3", "lyrics": "Heav-en-ly hosts sing" },
+    { "melody": "G4:1.5 A4:0.5 G4:1 | E4:3", "chords": "C:3 | C:3", "lyrics": "Al-le-lu-ia" },
+    { "melody": "D5:2 D5:1 | F5:1.5 D5:0.5 B4:1 | C5:3", "chords": "G:3 | G7:3 | C:3", "lyrics": "Christ the Sav-iour is born" },
+    { "melody": "E5:2 C5:1 | G4:1.5 E4:0.5 G4:1", "chords": "C:3 | C:3", "lyrics": "Christ the Sav-iour is" },
+    { "melody": "F4:2 D4:1 | C4:3", "chords": "G7:3 | C:3", "lyrics": "born _ _" }
+  ]
+}

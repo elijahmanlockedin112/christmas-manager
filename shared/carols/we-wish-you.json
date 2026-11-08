@@ -1,0 +1,26 @@
+{
+  "id": "we-wish-you",
+  "title": "We Wish You a Merry Christmas",
+  "by": "Traditional English",
+  "year": 1935,
+  "bpm": 112,
+  "meter": 3,
+  "instrumental": false,
+  "mood": "bright",
+  "lines": [
+    { "melody": "G4:1 | C5:1 C5:0.5 D5:0.5 C5:0.5 B4:0.5 | A4:1 A4:1", "chords": "C:1 | C:3 | F:2", "lyrics": "We wish you a mer-ry Christ-mas," },
+    { "melody": "A4:1 | D5:1 D5:0.5 E5:0.5 D5:0.5 C5:0.5 | B4:1 G4:1", "chords": "F:1 | Dm:3 | G7:2", "lyrics": "we wish you a mer-ry Christ-mas," },
+    { "melody": "G4:1 | E5:1 E5:0.5 F5:0.5 E5:0.5 D5:0.5 | C5:1 A4:1", "chords": "C:1 | C:3 | F:2", "lyrics": "we wish you a mer-ry Christ-mas" },
+    { "melody": "G4:0.5 G4:0.5 | A4:1 D5:1 B4:1 | C5:3", "chords": "G7:1 | Dm:2 G7:1 | C:3", "lyrics": "and a hap-py new year!" },
+
+    { "melody": "G4:1 | C5:1 C5:1 C5:1 | B4:2", "chords": "C:1 | C:3 | G7:2", "lyrics": "Good ti-dings we bring" },
+    { "melody": "B4:1 | C5:1 B4:1 A4:1 | G4:3", "chords": "G7:1 | C:3 | C:3", "lyrics": "to you and your kin;" },
+    { "melody": "D5:1 | E5:1 D5:1 C5:1 | G4:1 G4:1", "chords": "G7:1 | C:3 | C:2", "lyrics": "Good ti-dings for Christ-mas" },
+    { "melody": "G4:0.5 G4:0.5 | A4:1 D5:1 B4:1 | C5:3", "chords": "G7:1 | Dm:2 G7:1 | C:3", "lyrics": "and a hap-py new year!" },
+
+    { "melody": "G4:1 | C5:1 C5:0.5 D5:0.5 C5:0.5 B4:0.5 | A4:1 A4:1", "chords": "C:1 | C:3 | F:2", "lyrics": "We wish you a mer-ry Christ-mas," },
+    { "melody": "A4:1 | D5:1 D5:0.5 E5:0.5 D5:0.5 C5:0.5 | B4:1 G4:1", "chords": "F:1 | Dm:3 | G7:2", "lyrics": "we wish you a mer-ry Christ-mas," },
+    { "melody": "G4:1 | E5:1 E5:0.5 F5:0.5 E5:0.5 D5:0.5 | C5:1 A4:1", "chords": "C:1 | C:3 | F:2", "lyrics": "we wish you a mer-ry Christ-mas" },
+    { "melody": "G4:0.5 G4:0.5 | A4:1 D5:1 B4:1 | C5:3", "chords": "G7:1 | Dm:2 G7:1 | C:3", "lyrics": "and a hap-py new year!" }
+  ]
+}

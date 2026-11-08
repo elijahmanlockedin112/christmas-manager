@@ -1,0 +1,29 @@
+{
+  "id": "o-christmas-tree",
+  "title": "O Christmas Tree",
+  "by": "Traditional German (O Tannenbaum)",
+  "year": 1824,
+  "bpm": 92,
+  "meter": 3,
+  "instrumental": false,
+  "mood": "gentle",
+  "lines": [
+    { "melody": "C4:1 | F4:1.5 F4:0.5 F4:1 | F4:2", "chords": "C:1 | F:3 | F:2", "lyrics": "O Christ-mas tree _" },
+    { "melody": "G4:1 | A4:1.5 A4:0.5 A4:1 | A4:2", "chords": "C:1 | F:3 | F:2", "lyrics": "O Christ-mas tree _" },
+    { "melody": "A4:1 | G4:1.5 A4:0.5 Bb4:1 | E4:0.5 G4:0.5 F4:2", "chords": "F:1 | F:3 | C7:1 F:2", "lyrics": "how love-ly are your branch-es" },
+    { "melody": "C5:1 | C5:1.5 A4:0.5 D5:1 | C5:1 C5:0.5 Bb4:0.5 Bb4:1", "chords": "F:1 | F:3 | Bb:3", "lyrics": "In sum-mer sun in win-ter's snow" },
+    { "melody": "Bb4:1 | Bb4:1.5 G4:0.5 C5:1 | Bb4:1 Bb4:0.5 A4:0.5 A4:1", "chords": "Bb:1 | Bb:3 | C7:3", "lyrics": "a dress of green you al-ways show" },
+    { "melody": "C4:1 | F4:1.5 F4:0.5 F4:1 | F4:2", "chords": "C:1 | F:3 | F:2", "lyrics": "O Christ-mas tree _" },
+    { "melody": "G4:1 | A4:1.5 A4:0.5 A4:1 | A4:2", "chords": "C:1 | F:3 | F:2", "lyrics": "O Christ-mas tree _" },
+    { "melody": "A4:1 | G4:1.5 A4:0.5 Bb4:1 | E4:0.5 G4:0.5 F4:2", "chords": "F:1 | F:3 | C7:1 F:2", "lyrics": "how love-ly are your branch-es" },
+
+    { "melody": "C4:1 | F4:1.5 F4:0.5 F4:1 | F4:2", "chords": "C:1 | F:3 | F:2", "lyrics": "O Christ-mas tree _" },
+    { "melody": "G4:1 | A4:1.5 A4:0.5 A4:1 | A4:2", "chords": "C:1 | F:3 | F:2", "lyrics": "O Christ-mas tree _" },
+    { "melody": "A4:1 | G4:1.5 A4:0.5 Bb4:1 | E4:0.5 G4:0.5 F4:2", "chords": "F:1 | F:3 | C7:1 F:2", "lyrics": "much plea-sure doth thou bring me" },
+    { "melody": "C5:1 | C5:1.5 A4:0.5 D5:1 | C5:1 C5:0.5 Bb4:0.5 Bb4:1", "chords": "F:1 | F:3 | Bb:3", "lyrics": "For ev-'ry year the Christ-mas tree" },
+    { "melody": "Bb4:1 | Bb4:1.5 G4:0.5 C5:1 | Bb4:1 Bb4:0.5 A4:0.5 A4:1", "chords": "Bb:1 | Bb:3 | C7:3", "lyrics": "brings to us all both joy and glee" },
+    { "melody": "C4:1 | F4:1.5 F4:0.5 F4:1 | F4:2", "chords": "C:1 | F:3 | F:2", "lyrics": "O Christ-mas tree _" },
+    { "melody": "G4:1 | A4:1.5 A4:0.5 A4:1 | A4:2", "chords": "C:1 | F:3 | F:2", "lyrics": "O Christ-mas tree _" },
+    { "melody": "A4:1 | G4:1.5 A4:0.5 Bb4:1 | E4:0.5 G4:0.5 F4:2", "chords": "F:1 | F:3 | C7:1 F:2", "lyrics": "much plea-sure doth thou bring me" }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "id": "deck-the-halls",
+  "title": "Deck the Halls",
+  "by": "Traditional Welsh melody, lyrics Thomas Oliphant",
+  "year": 1862,
+  "bpm": 120,
+  "meter": 4,
+  "instrumental": false,
+  "mood": "bright",
+  "lines": [
+    { "melody": "G4:1.5 F4:0.5 E4:1 D4:1 | C4:1 D4:1 E4:1 C4:1", "chords": "C:4 | C:4", "lyrics": "Deck the halls with boughs of hol-ly," },
+    { "melody": "D4:0.5 E4:0.5 F4:0.5 D4:0.5 E4:1.5 D4:0.5 | C4:1 B3:1 C4:2", "chords": "G:2 C:2 | G:2 C:2", "lyrics": "Fa la la la la, la la la la;" },
+    { "melody": "G4:1.5 F4:0.5 E4:1 D4:1 | C4:1 D4:1 E4:1 C4:1", "chords": "C:4 | C:4", "lyrics": "'Tis the sea-son to be jol-ly," },
+    { "melody": "D4:0.5 E4:0.5 F4:0.5 D4:0.5 E4:1.5 D4:0.5 | C4:1 B3:1 C4:2", "chords": "G:2 C:2 | G:2 C:2", "lyrics": "Fa la la la la, la la la la." },
+    { "melody": "D4:1.5 E4:0.5 F4:1 D4:1 | E4:1.5 F4:0.5 G4:1 D4:1", "chords": "C:4 | C:4", "lyrics": "Don we now our gay ap-par-el," },
+    { "melody": "E4:0.5 F4:0.5 G4:1 A4:0.5 B4:0.5 C5:1 | B4:1 A4:1 G4:2", "chords": "C:2 Am:2 | D7:2 G:2", "lyrics": "Fa la la, la la la, la la la." },
+    { "melody": "G4:1.5 F4:0.5 E4:1 D4:1 | C4:1 D4:1 E4:1 C4:1", "chords": "C:4 | C:4", "lyrics": "Troll the an-cient Yule-tide car-ol," },
+    { "melody": "A4:0.5 A4:0.5 A4:0.5 A4:0.5 G4:1.5 F4:0.5 | E4:1 D4:1 C4:2", "chords": "F:2 C:2 | G:2 C:2", "lyrics": "Fa la la la la, la la la la." },
+
+    { "melody": "G4:1.5 F4:0.5 E4:1 D4:1 | C4:1 D4:1 E4:1 C4:1", "chords": "C:4 | C:4", "lyrics": "See the bla-zing Yule be-fore us," },
+    { "melody": "D4:0.5 E4:0.5 F4:0.5 D4:0.5 E4:1.5 D4:0.5 | C4:1 B3:1 C4:2", "chords": "G:2 C:2 | G:2 C:2", "lyrics": "Fa la la la la, la la la la;" },
+    { "melody": "G4:1.5 F4:0.5 E4:1 D4:1 | C4:1 D4:1 E4:1 C4:1", "chords": "C:4 | C:4", "lyrics": "Strike the harp and join the cho-rus," },
+    { "melody": "D4:0.5 E4:0.5 F4:0.5 D4:0.5 E4:1.5 D4:0.5 | C4:1 B3:1 C4:2", "chords": "G:2 C:2 | G:2 C:2", "lyrics": "Fa la la la la, la la la la." },
+    { "melody": "D4:1.5 E4:0.5 F4:1 D4:1 | E4:1.5 F4:0.5 G4:1 D4:1", "chords": "C:4 | C:4", "lyrics": "Fol-low me in mer-ry mea-sure," },
+    { "melody": "E4:0.5 F4:0.5 G4:1 A4:0.5 B4:0.5 C5:1 | B4:1 A4:1 G4:2", "chords": "C:2 Am:2 | D7:2 G:2", "lyrics": "Fa la la, la la la, la la la." },
+    { "melody": "G4:1.5 F4:0.5 E4:1 D4:1 | C4:1 D4:1 E4:1 C4:1", "chords": "C:4 | C:4", "lyrics": "While I tell of Yule-tide trea-sure," },
+    { "melody": "A4:0.5 A4:0.5 A4:0.5 A4:0.5 G4:1.5 F4:0.5 | E4:1 D4:1 C4:2", "chords": "F:2 C:2 | G:2 C:2", "lyrics": "Fa la la la la, la la la la." }
+  ]
+}

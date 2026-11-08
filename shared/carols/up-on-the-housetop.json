@@ -1,0 +1,21 @@
+{
+  "id": "up-on-the-housetop",
+  "title": "Up on the Housetop",
+  "by": "Benjamin Hanby",
+  "year": 1864,
+  "bpm": 120,
+  "meter": 4,
+  "instrumental": false,
+  "mood": "bright",
+  "lines": [
+    { "melody": "G4:1 G4:0.5 A4:0.5 G4:1 E4:0.5 D4:0.5 | C4:1 E4:1 G4:2", "chords": "C:4 | C:4", "lyrics": "Up on the house-top _ rein-deer pause," },
+    { "melody": "A4:1 A4:1 G4:1 E4:1 | D4:1 G4:1 G4:2", "chords": "F:2 C:2 | G7:4", "lyrics": "Out jumps good old San-ta Claus;" },
+    { "melody": "G4:1 G4:0.5 A4:0.5 G4:1 E4:0.5 D4:0.5 | C4:1 E4:1 G4:2", "chords": "C:4 | C:4", "lyrics": "Down through the chim-ney with lots of toys," },
+    { "melody": "A4:1 A4:0.5 A4:0.5 G4:0.5 G4:0.5 E4:1 | D4:1 G4:1 C4:2", "chords": "F:2 C:2 | G7:2 C:2", "lyrics": "All for the lit-tle ones' Christ-mas joys." },
+
+    { "melody": "F4:1 F4:1 A4:2 | G4:1 G4:0.5 G4:0.5 E4:2", "chords": "F:4 | C:4", "lyrics": "Ho, ho, ho! Who would-n't go?" },
+    { "melody": "D4:1 F4:1 F4:2 | E4:1 G4:0.5 G4:0.5 C4:1 E4:1", "chords": "G7:4 | C:4", "lyrics": "Ho, ho, ho! Who would-n't go _" },
+    { "melody": "G4:1 G4:0.5 A4:0.5 G4:1 E4:1 | F4:1 G4:1 A4:1 R:1", "chords": "C:2 C7:2 | F:4", "lyrics": "Up on the house-top, click, click, click," },
+    { "melody": "G4:1 G4:0.5 A4:0.5 G4:0.5 G4:0.5 E4:1 | D4:1 G4:1 C4:1 R:1", "chords": "C:4 | G7:2 C:2", "lyrics": "Down through the chim-ney with good Saint Nick." }
+  ]
+}

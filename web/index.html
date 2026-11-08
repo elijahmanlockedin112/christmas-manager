@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0b1510">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="North Pole">
+<title>North Pole Control</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/web/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/web/icon-180.png">
+<link rel="stylesheet" href="/web/app.css">
+</head>
+<body>
+<div class="app">
+  <aside class="stage">
+    <div class="stage-top">
+      <div class="brand">North Pole <em>Control</em></div>
+      <div class="sleeps" id="sleeps"></div>
+    </div>
+    <div class="tree-wrap" id="treeWrap"><canvas id="tree"></canvas></div>
+    <div class="stage-bottom">
+      <button class="power" id="power" aria-label="Tree power"></button>
+      <div class="now">
+        <div class="now-label"><span class="link-dot" id="linkDot"></span><span id="nowLabel">Connecting</span></div>
+        <div class="now-name" id="nowName">&nbsp;</div>
+      </div>
+      <label class="bright" aria-label="Brightness"><span id="briIcon"></span><input type="range" id="bri" min="2" max="100" step="1"></label>
+    </div>
+  </aside>
+  <main class="panel">
+    <nav class="tabs" id="tabs"></nav>
+    <div class="views" id="views">
+      <section class="view" data-view="lights"></section>
+      <section class="view" data-view="music"></section>
+      <section class="view" data-view="games"></section>
+      <section class="view" data-view="fun"></section>
+      <section class="view" data-view="tv"></section>
+      <section class="view" data-view="setup"></section>
+    </div>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+<script type="module" src="/web/app.js"></script>
+</body>
+</html>

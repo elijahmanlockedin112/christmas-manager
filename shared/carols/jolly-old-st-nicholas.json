@@ -1,0 +1,29 @@
+{
+  "id": "jolly-old-st-nicholas",
+  "title": "Jolly Old Saint Nicholas",
+  "by": "Traditional (words Emily Huntington Miller)",
+  "year": 1865,
+  "bpm": 100,
+  "meter": 2,
+  "instrumental": false,
+  "mood": "gentle",
+  "lines": [
+    { "melody": "A4:0.5 A4:0.5 A4:0.5 A4:0.5 | G4:0.5 G4:0.5 G4:1", "chords": "F:2 | C7:2", "lyrics": "Jol-ly old Saint Nich-o-las," },
+    { "melody": "F4:0.5 F4:0.5 F4:0.5 F4:0.5 | A4:2", "chords": "F:2 | F:2", "lyrics": "lean your ear this way;" },
+    { "melody": "D4:0.5 D4:0.5 D4:0.5 D4:0.5 | C4:0.5 C4:0.5 F4:1", "chords": "Bb:2 | C7:1 F:1", "lyrics": "Don't you tell a sin-gle soul" },
+    { "melody": "E4:0.5 F4:0.5 G4:0.5 A4:0.5 | G4:1 G4:1", "chords": "C7:2 | C7:2", "lyrics": "what I'm go-ing to say;" },
+    { "melody": "A4:0.5 A4:0.5 A4:0.5 A4:0.5 | G4:0.5 G4:0.5 G4:1", "chords": "F:2 | C7:2", "lyrics": "Christ-mas Eve is com-ing soon;" },
+    { "melody": "F4:0.5 F4:0.5 F4:0.5 F4:0.5 | A4:2", "chords": "F:2 | F:2", "lyrics": "now, you dear old man," },
+    { "melody": "D4:0.5 D4:0.5 D4:0.5 D4:0.5 | C4:0.5 C4:0.5 F4:1", "chords": "Bb:2 | C7:1 F:1", "lyrics": "whis-per what you'll bring to me;" },
+    { "melody": "G4:0.5 F4:0.5 G4:0.5 A4:0.5 | F4:2", "chords": "C7:2 | F:2", "lyrics": "tell me if you can." },
+
+    { "melody": "A4:0.5 A4:0.5 A4:0.5 A4:0.5 | G4:0.5 G4:0.5 G4:1", "chords": "F:2 | C7:2", "lyrics": "When the clock is strik-ing twelve," },
+    { "melody": "F4:0.5 F4:0.5 F4:0.5 F4:0.5 | A4:2", "chords": "F:2 | F:2", "lyrics": "when I'm fast a-sleep," },
+    { "melody": "D4:0.5 D4:0.5 D4:0.5 D4:0.5 | C4:0.5 C4:0.5 F4:1", "chords": "Bb:2 | C7:1 F:1", "lyrics": "Down the chim-ney broad and black," },
+    { "melody": "E4:0.5 F4:0.5 G4:0.5 A4:0.5 | G4:1 G4:1", "chords": "C7:2 | C7:2", "lyrics": "with your pack you'll creep _" },
+    { "melody": "A4:0.5 A4:0.5 A4:0.5 A4:0.5 | G4:0.5 G4:0.5 G4:1", "chords": "F:2 | C7:2", "lyrics": "All the stock-ings you will find" },
+    { "melody": "F4:0.5 F4:0.5 F4:0.5 F4:0.5 | A4:2", "chords": "F:2 | F:2", "lyrics": "hang-ing in a row;" },
+    { "melody": "D4:0.5 D4:0.5 D4:0.5 D4:0.5 | C4:0.5 C4:0.5 F4:1", "chords": "Bb:2 | C7:1 F:1", "lyrics": "Mine will be the short-est one," },
+    { "melody": "G4:0.5 F4:0.5 G4:0.5 A4:0.5 | F4:2", "chords": "C7:2 | F:2", "lyrics": "you'll be sure to know." }
+  ]
+}

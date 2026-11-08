@@ -1,0 +1,22 @@
+{
+  "id": "hark-the-herald",
+  "title": "Hark! The Herald Angels Sing",
+  "by": "Felix Mendelssohn (1840), words Charles Wesley",
+  "year": 1840,
+  "bpm": 104,
+  "meter": 4,
+  "instrumental": false,
+  "mood": "grand",
+  "lines": [
+    { "melody": "D4:1 | G4:1 G4:1.5 F#4:0.5 G4:1 | B4:1.5 B4:0.5 A4:2", "chords": "D:1 | G:4 | G:2 D:2", "lyrics": "Hark! the her-ald an-gels sing _" },
+    { "melody": "D5:1 D5:1 D5:1 C5:1 | B4:1.5 A4:0.5 B4:1", "chords": "G:4 | Em:2 A7:1", "lyrics": "Glo-ry to the new-born King" },
+    { "melody": "D4:1 | G4:1 G4:1.5 F#4:0.5 G4:1 | B4:1.5 B4:0.5 A4:2", "chords": "D:1 | G:4 | G:2 D:2", "lyrics": "Peace on earth and mer-cy mild _" },
+    { "melody": "D5:1 A4:1 A4:1.5 G4:0.5 | F#4:0.5 E4:0.5 D4:2", "chords": "D:4 | A7:1 D:2", "lyrics": "God and sin-ners re-con-ciled" },
+    { "melody": "D5:1 | D5:1 D5:1 G4:1 C5:0.5 B4:0.5 | B4:1 A4:2", "chords": "G:1 | G:4 | G:1 D:2", "lyrics": "Joy-ful all ye na-tions rise _" },
+    { "melody": "D5:1 | D5:1 D5:1 G4:1 C5:0.5 B4:0.5 | B4:1 A4:2", "chords": "G:1 | G:4 | G:1 D:2", "lyrics": "Join the tri-umph of the skies _" },
+    { "melody": "E5:1 | E5:1 E5:0.5 D5:0.5 C5:1 B4:0.5 C5:0.5", "chords": "Em:1 | Em:2 A7:2", "lyrics": "With th'an-gel-ic host pro-claim" },
+    { "melody": "A4:1 | B4:0.5 C5:0.5 D5:1 G4:1.5 G4:0.5 | A4:2 B4:1", "chords": "D:1 | D:2 G:2 | A7:3", "lyrics": "Christ is born in Beth-le-hem _" },
+    { "melody": "E5:1 | E5:1 E5:0.5 D5:0.5 C5:1 B4:0.5 C5:0.5", "chords": "Em:1 | Em:2 A7:2", "lyrics": "Hark! the her-ald an-gels sing" },
+    { "melody": "A4:1 | B4:0.5 C5:0.5 D5:1 G4:1.5 G4:0.5 | A4:1 G4:3", "chords": "D:1 | D:2 G:2 | D:4", "lyrics": "Glo-ry to the new-born King _" }
+  ]
+}

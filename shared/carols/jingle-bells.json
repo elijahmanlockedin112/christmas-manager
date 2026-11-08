@@ -1,0 +1,30 @@
+{
+  "id": "jingle-bells",
+  "title": "Jingle Bells",
+  "by": "James Lord Pierpont",
+  "year": 1857,
+  "bpm": 116,
+  "meter": 4,
+  "instrumental": false,
+  "mood": "bright",
+  "lines": [
+    { "melody": "G3:1 E4:1 D4:1 C4:1 | G3:3", "chords": "C:4 | C:3", "lyrics": "Dash-ing through the snow," },
+    { "melody": "G3:0.5 G3:0.5 | G3:1 E4:1 D4:1 C4:1 | A3:4", "chords": "C:1 | C:4 | F:4", "lyrics": "in a one-horse o-pen sleigh," },
+    { "melody": "A3:1 F4:1 E4:1 D4:1 | B3:3 R:1", "chords": "Dm:4 | G7:4", "lyrics": "O'er the fields we go," },
+    { "melody": "G4:1 G4:1 F4:1 D4:1 | E4:3 R:1", "chords": "G7:4 | C:4", "lyrics": "laugh-ing all the way;" },
+    { "melody": "G3:1 E4:1 D4:1 C4:1 | G3:3 R:1", "chords": "C:4 | C:4", "lyrics": "Bells on bob-tail ring," },
+    { "melody": "G3:1 E4:1 D4:1 C4:1 | A3:3 R:1", "chords": "C:4 | F:4", "lyrics": "mak-ing spir-its bright;" },
+    { "melody": "A3:1 F4:1 E4:1 D4:1 | G4:1 G4:1 G4:1 G4:1", "chords": "Dm:4 | C:4", "lyrics": "What fun it is to ride and sing" },
+    { "melody": "A4:1 G4:1 F4:1 D4:1 | C4:2 G4:2", "chords": "G7:4 | C:2 G7:2", "lyrics": "a sleigh-ing song to-night!" },
+
+    { "melody": "E4:1 E4:1 E4:2 | E4:1 E4:1 E4:2", "chords": "C:4 | C:4", "lyrics": "Jin-gle bells, jin-gle bells," },
+    { "melody": "E4:1 G4:1 C4:1.5 D4:0.5 | E4:4", "chords": "C:4 | C:4", "lyrics": "jin-gle all the way!" },
+    { "melody": "F4:1 F4:1 F4:1.5 F4:0.5 | F4:1 E4:1 E4:1 E4:0.5 E4:0.5", "chords": "F:4 | F:1 C:3", "lyrics": "Oh what fun it is to ride in a" },
+    { "melody": "E4:1 D4:1 D4:1 E4:1 | D4:2 G4:2", "chords": "D7:4 | G7:4", "lyrics": "one-horse o-pen sleigh, hey!" },
+
+    { "melody": "E4:1 E4:1 E4:2 | E4:1 E4:1 E4:2", "chords": "C:4 | C:4", "lyrics": "Jin-gle bells, jin-gle bells," },
+    { "melody": "E4:1 G4:1 C4:1.5 D4:0.5 | E4:4", "chords": "C:4 | C:4", "lyrics": "jin-gle all the way!" },
+    { "melody": "F4:1 F4:1 F4:1.5 F4:0.5 | F4:1 E4:1 E4:1 E4:0.5 E4:0.5", "chords": "F:4 | F:1 C:3", "lyrics": "Oh what fun it is to ride in a" },
+    { "melody": "G4:1 G4:1 F4:1 D4:1 | C4:2 R:2", "chords": "G7:4 | C:4", "lyrics": "one-horse o-pen sleigh!" }
+  ]
+}

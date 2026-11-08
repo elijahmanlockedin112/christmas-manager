@@ -1,0 +1,25 @@
+{
+  "id": "joy-to-the-world",
+  "title": "Joy to the World",
+  "by": "Isaac Watts, tune Antioch arr. Lowell Mason",
+  "year": 1719,
+  "bpm": 100,
+  "meter": 2,
+  "instrumental": false,
+  "mood": "grand",
+  "lines": [
+    { "melody": "C5:1 B4:0.75 A4:0.25 | G4:1.5 F4:0.5 | E4:1 D4:1 | C4:1.5", "chords": "C:2 | G7:2 | C:2 | C:1.5", "lyrics": "Joy to the world, the Lord is come;" },
+    { "melody": "G4:0.5 | A4:1.5 A4:0.5 | B4:1.5 B4:0.5 | C5:1.5", "chords": "G7:0.5 | F:2 | G7:2 | C:1.5", "lyrics": "Let earth re-ceive her King;" },
+    { "melody": "C5:0.5 | C5:0.5 B4:0.5 A4:0.5 G4:0.5 | G4:0.75 F4:0.25 E4:0.5", "chords": "C:0.5 | C:1 F:1 | C:1.5", "lyrics": "Let ev-'ry heart pre-pare Him room," },
+    { "melody": "C5:0.5 | C5:0.5 B4:0.5 A4:0.5 G4:0.5 | G4:0.75 F4:0.25 E4:0.5", "chords": "C:0.5 | C:1 G7:1 | C:1.5", "lyrics": "And heav'n and na-ture sing _ _" },
+    { "melody": "E4:0.5 | E4:0.5 E4:0.5 E4:0.5 E4:0.25 F4:0.25 | G4:1.5 F4:0.25 E4:0.25", "chords": "C:0.5 | C:2 | G7:2", "lyrics": "And heav'n and na-ture _ sing _ _" },
+    { "melody": "D4:0.5 D4:0.5 D4:0.5 D4:0.25 E4:0.25 | F4:1.5 E4:0.25 D4:0.25 | C4:0.5 C5:1 A4:0.5 | G4:0.75 F4:0.25 E4:0.5 F4:0.5 | E4:1 D4:1 | C4:2", "chords": "G7:2 | G7:2 | C:2 | C:2 | G7:2 | C:2", "lyrics": "And heav'n and heav'n _ and _ _ na-ture sing _ _ _ _ _ _ _" },
+
+    { "melody": "C5:1 B4:0.75 A4:0.25 | G4:1.5 F4:0.5 | E4:1 D4:1 | C4:1.5", "chords": "C:2 | G7:2 | C:2 | C:1.5", "lyrics": "Joy to the earth! the Sav-ior reigns;" },
+    { "melody": "G4:0.5 | A4:1.5 A4:0.5 | B4:1.5 B4:0.5 | C5:1.5", "chords": "G7:0.5 | F:2 | G7:2 | C:1.5", "lyrics": "Let men their songs em-ploy;" },
+    { "melody": "C5:0.5 | C5:0.5 B4:0.5 A4:0.5 G4:0.5 | G4:0.75 F4:0.25 E4:0.5", "chords": "C:0.5 | C:1 F:1 | C:1.5", "lyrics": "While fields and floods, rocks, hills and plains" },
+    { "melody": "C5:0.5 | C5:0.5 B4:0.5 A4:0.5 G4:0.5 | G4:0.75 F4:0.25 E4:0.5", "chords": "C:0.5 | C:1 G7:1 | C:1.5", "lyrics": "Re-peat the sound-ing joy _ _" },
+    { "melody": "E4:0.5 | E4:0.5 E4:0.5 E4:0.5 E4:0.25 F4:0.25 | G4:1.5 F4:0.25 E4:0.25", "chords": "C:0.5 | C:2 | G7:2", "lyrics": "Re-peat the sound-ing _ joy _ _" },
+    { "melody": "D4:0.5 D4:0.5 D4:0.5 D4:0.25 E4:0.25 | F4:1.5 E4:0.25 D4:0.25 | C4:0.5 C5:1 A4:0.5 | G4:0.75 F4:0.25 E4:0.5 F4:0.5 | E4:1 D4:1 | C4:2", "chords": "G7:2 | G7:2 | C:2 | C:2 | G7:2 | C:2", "lyrics": "Re-peat, re-peat _ the _ _ sound-ing joy _ _ _ _ _ _ _" }
+  ]
+}

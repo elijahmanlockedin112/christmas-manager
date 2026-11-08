@@ -1,0 +1,14 @@
+{ "hidden": true,
+  "id": "angels-we-have-heard", "title": "Angels We Have Heard on High", "by": "Traditional French carol (Gloria)", "year": 1862,
+  "bpm": 100, "meter": 4, "instrumental": false, "mood": "grand",
+  "lines": [
+    { "melody": "D4:1 | G4:1 G4:1 G4:1 B4:1 | A4:1 G4:3", "chords": "G:1 | G:4 | D:1 G:3", "lyrics": "An gels we have heard on high," },
+    { "melody": "D4:1 | G4:1 G4:1 G4:1 B4:1 | A4:1 G4:3", "chords": "G:1 | G:4 | D:1 G:3", "lyrics": "Sweet ly sing ing o'er the plains," },
+    { "melody": "D4:1 | B4:1 B4:1 B4:1 D5:1 | C5:1 B4:3", "chords": "G:1 | G:4 | D:1 G:3", "lyrics": "And the moun tains in re ply" },
+    { "melody": "D4:1 | G4:1 G4:1 G4:1 B4:1 | A4:1 G4:3", "chords": "G:1 | G:4 | D:1 G:3", "lyrics": "Ech o ing their joy ous strains." },
+    { "melody": "G4:0.5 A4:0.5 B4:0.5 C5:0.5 D5:0.5 C5:0.5 B4:0.5 A4:0.5 | B4:2 G4:2", "chords": "G:4 | G:4", "lyrics": "Glo _ _ _ _ _ _ _ ri-a" },
+    { "melody": "B4:1 C5:1 D5:1 B4:1 | A4:2 G4:2", "chords": "G:4 | D:2 G:2", "lyrics": "in ex-cel-sis De-o." },
+    { "melody": "G4:0.5 A4:0.5 B4:0.5 C5:0.5 D5:0.5 C5:0.5 B4:0.5 A4:0.5 | B4:2 G4:2", "chords": "G:4 | G:4", "lyrics": "Glo _ _ _ _ _ _ _ ri-a" },
+    { "melody": "B4:1 C5:1 D5:1 B4:1 | A4:2 G4:2", "chords": "G:4 | D:2 G:2", "lyrics": "in ex-cel-sis De-o." }
+  ]
+}

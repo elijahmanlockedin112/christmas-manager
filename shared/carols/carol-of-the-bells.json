@@ -1,0 +1,77 @@
+{
+  "id": "carol-of-the-bells",
+  "title": "Carol of the Bells",
+  "by": "Mykola Leontovych (Shchedryk)",
+  "year": 1914,
+  "bpm": 150,
+  "meter": 3,
+  "instrumental": true,
+  "mood": "mysterious",
+  "lines": [
+    {
+      "melody": "Bb4:1 A4:0.5 Bb4:0.5 G4:1 | Bb4:1 A4:0.5 Bb4:0.5 G4:1 | Bb4:1 A4:0.5 Bb4:0.5 G4:1 | Bb4:1 A4:0.5 Bb4:0.5 G4:1",
+      "chords": "Gm:12",
+      "lyrics": ""
+    },
+    {
+      "melody": "Bb4:1 A4:0.5 Bb4:0.5 G4:1 | Bb4:1 A4:0.5 Bb4:0.5 G4:1 | Bb4:1 A4:0.5 Bb4:0.5 G4:1 | Bb4:1 A4:0.5 Bb4:0.5 G4:1",
+      "chords": "Gm:12",
+      "lyrics": ""
+    },
+    {
+      "melody": "Bb4:1 A4:0.5 Bb4:0.5 G4:1 | Bb4:1 A4:0.5 Bb4:0.5 G4:1 | Bb4:1 A4:0.5 Bb4:0.5 G4:1 | Bb4:1 A4:0.5 Bb4:0.5 G4:1",
+      "chords": "Gm:12",
+      "lyrics": ""
+    },
+    {
+      "melody": "D5:1 C5:0.5 D5:0.5 Bb4:1 | D5:1 C5:0.5 D5:0.5 Bb4:1 | D5:1 C5:0.5 D5:0.5 Bb4:1 | D5:1 C5:0.5 D5:0.5 Bb4:1",
+      "chords": "Gm:12",
+      "lyrics": ""
+    },
+    {
+      "melody": "Bb4:1 A4:0.5 Bb4:0.5 G4:1 | Bb4:1 A4:0.5 Bb4:0.5 G4:1 | Bb4:1 A4:0.5 Bb4:0.5 G4:1 | Bb4:1 A4:0.5 Bb4:0.5 G4:1",
+      "chords": "Gm:12",
+      "lyrics": ""
+    },
+    {
+      "melody": "G5:0.5 G5:0.5 G5:1 F5:0.5 Eb5:0.5 | D5:1 D5:0.5 D5:0.5 C5:0.5 Bb4:0.5 | C5:0.5 C5:0.5 C5:1 D5:0.5 C5:0.5 | G4:1 G4:0.5 G4:0.5 G4:1",
+      "chords": "Eb:3 | Gm:3 | Cm:3 | Gm:3",
+      "lyrics": ""
+    },
+    {
+      "melody": "D5:1 C5:0.5 D5:0.5 Bb4:1 | D5:1 C5:0.5 D5:0.5 Bb4:1 | D5:1 C5:0.5 D5:0.5 Bb4:1 | D5:1 C5:0.5 D5:0.5 Bb4:1",
+      "chords": "Gm:12",
+      "lyrics": ""
+    },
+    {
+      "melody": "Bb4:1 A4:0.5 Bb4:0.5 G4:1 | Bb4:1 A4:0.5 Bb4:0.5 G4:1 | Bb4:1 A4:0.5 Bb4:0.5 G4:1 | Bb4:1 A4:0.5 Bb4:0.5 G4:1",
+      "chords": "Gm:12",
+      "lyrics": ""
+    },
+    {
+      "melody": "D4:0.5 E4:0.5 F#4:0.5 G4:0.5 A4:0.5 Bb4:0.5 | C5:1 D5:0.5 C5:0.5 Bb4:1 | D4:0.5 E4:0.5 F#4:0.5 G4:0.5 A4:0.5 Bb4:0.5 | C5:1 D5:0.5 C5:0.5 Bb4:1",
+      "chords": "Gm:12",
+      "lyrics": ""
+    },
+    {
+      "melody": "Bb4:1 A4:0.5 Bb4:0.5 G4:1 | Bb4:1 A4:0.5 Bb4:0.5 G4:1 | Bb4:1 A4:0.5 Bb4:0.5 G4:1 | Bb4:1 A4:0.5 Bb4:0.5 G4:1",
+      "chords": "Gm:12",
+      "lyrics": ""
+    },
+    {
+      "melody": "G5:0.5 G5:0.5 G5:1 F5:0.5 Eb5:0.5 | D5:1 D5:0.5 D5:0.5 C5:0.5 Bb4:0.5 | C5:0.5 C5:0.5 C5:1 D5:0.5 C5:0.5 | G4:1 G4:0.5 G4:0.5 G4:1",
+      "chords": "Eb:3 | Gm:3 | Cm:3 | Gm:3",
+      "lyrics": ""
+    },
+    {
+      "melody": "D4:0.5 E4:0.5 F#4:0.5 G4:0.5 A4:0.5 Bb4:0.5 | C5:1 D5:0.5 C5:0.5 Bb4:1 | D4:0.5 E4:0.5 F#4:0.5 G4:0.5 A4:0.5 Bb4:0.5 | C5:1 D5:0.5 C5:0.5 Bb4:1",
+      "chords": "Gm:12",
+      "lyrics": ""
+    },
+    {
+      "melody": "Bb4:1 A4:0.5 Bb4:0.5 G4:1 | Bb4:1 A4:0.5 Bb4:0.5 G4:1 | G5:0.5 F5:0.5 Eb5:0.5 D5:0.5 C5:0.5 Bb4:0.5 | A4:1 G4:2",
+      "chords": "Gm:12",
+      "lyrics": ""
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "it-came-upon", "title": "It Came Upon the Midnight Clear", "by": "Edmund Sears (words); Richard Storrs Willis (tune Carol)", "year": 1850,
+  "bpm": 76, "meter": 3, "instrumental": false, "mood": "gentle",
+  "lines": [
+    { "melody": "D4:1 | G4:1.5 A4:0.5 B4:1 | B4:1.5 A4:0.5 G4:1 | A4:3", "chords": "G:1 | G:3 | C:3 | D:3", "lyrics": "It came up on the mid night clear," },
+    { "melody": "D4:1 | G4:2 B4:1 | B4:2 A4:1 | G4:3", "chords": "G:1 | G:3 | D:3 | G:3", "lyrics": "That glo rious song of old," },
+    { "melody": "D4:1 | G4:1.5 A4:0.5 B4:1 | B4:1.5 A4:0.5 G4:1 | A4:3", "chords": "G:1 | G:3 | C:3 | D:3", "lyrics": "From an gels bend ing near the earth," },
+    { "melody": "D4:1 | G4:2 B4:1 | B4:2 A4:1 | G4:3", "chords": "G:1 | G:3 | D:3 | G:3", "lyrics": "To touch their harps of gold;" },
+    { "melody": "D5:1 | D5:1.5 C5:0.5 B4:1 | A4:1.5 B4:0.5 G4:1 | A4:3", "chords": "G:1 | G:3 | D:3 | D:3", "lyrics": "Peace on the earth, good will to men," },
+    { "melody": "D4:1 | B4:2 D5:1 | C5:2 A4:1 | G4:3", "chords": "G:1 | G:3 | C:3 | G:3", "lyrics": "From heav'n's all gra cious King." },
+    { "melody": "D4:1 | G4:1.5 A4:0.5 B4:1 | B4:1.5 A4:0.5 G4:1 | G4:3", "chords": "G:1 | G:3 | C:3 | G:3", "lyrics": "The world in sol emn still ness lay" },
+    { "melody": "D4:1 | G4:2 B4:1 | B4:2 A4:1 | G4:3", "chords": "G:1 | G:3 | D:3 | G:3", "lyrics": "To hear the an gels sing." }
+  ]
+}

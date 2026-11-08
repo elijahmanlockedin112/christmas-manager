@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0b1510">
+<title>Charades · North Pole</title>
+<link rel="stylesheet" href="/web/app.css">
+<style>
+  body { display: grid; place-items: center; height: 100dvh; overflow: hidden; text-align: center; touch-action: manipulation; }
+  #card { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; transition: background .25s; }
+  #word { font-family: var(--serif); font-weight: 800; font-size: clamp(40px, 11vw, 120px); line-height: 1; letter-spacing: -0.03em; }
+  #sub { color: var(--muted); margin-top: 18px; font-size: 18px; }
+  #time { position: fixed; top: max(14px, env(safe-area-inset-top)); right: 18px; font-family: var(--mono); font-size: 28px; }
+  #score { position: fixed; top: max(14px, env(safe-area-inset-top)); left: 18px; font-family: var(--mono); font-size: 28px; color: var(--gold); }
+  .zone { position: fixed; top: 0; bottom: 0; width: 50%; }
+  #pass { left: 0; } #ok { right: 0; }
+  .ok-bg { background: #13693a !important; } .pass-bg { background: #6b1f1a !important; }
+</style>
+</head>
+<body>
+<div id="card"><div id="word">Charades</div><div id="sub">Hold the phone on your forehead, screen out. Everyone else acts it out.<br><br>Tilt down or tap right when you get it. Tilt up or tap left to pass.</div><div class="btns" style="margin-top:28px;justify-content:center"><button class="btn primary" id="start" style="height:56px;padding:0 28px">Start 60 seconds</button></div></div>
+<div id="score"></div><div id="time"></div>
+<div class="zone" id="pass"></div><div class="zone" id="ok"></div>
+<script type="module">
+import { connect, $ } from '/web/lib/net.js';
+const net = connect({ role: 'player' });
+let words = [], i = 0, score = 0, ends = 0, running = false, lock = false, timer = 0, gotList = [];
+fetch('/api/content').then(r => r.json()).then(c => { words = c.charades.map(w => w.word).sort(() => Math.random() - 0.5); });
+$('#pass').style.display = $('#ok').style.display = 'none';
+async function start() {
+  try { if (typeof DeviceOrientationEvent?.requestPermission === 'function') await DeviceOrientationEvent.requestPermission(); } catch {}
+  score = 0; gotList = []; running = true; ends = Date.now() + 60000;
+  $('#pass').style.display = $('#ok').style.display = 'block';
+  next(); clearInterval(timer); timer = setInterval(tick, 200); tick();
+}
+function next() { const w = words[i++ % words.length] || 'Santa'; $('#card').innerHTML = `<div id="word">${w}</div>`; }
+function tick() {
+  const left = Math.max(0, Math.ceil((ends - Date.now()) / 1000));
+  $('#time').textContent = left; $('#score').textContent = score;
+  if (left <= 0 && running) {
+    running = false; clearInterval(timer);
+    $('#pass').style.display = $('#ok').style.display = 'none';
+    $('#card').innerHTML = `<div id="word">${score}</div><div id="sub">${score === 1 ? 'word' : 'words'} in 60 seconds${gotList.length ? `<br><br>${gotList.slice(0, 12).join(' · ')}` : ''}</div><div class="btns" style="margin-top:28px;justify-content:center"><button class="btn primary" id="again" style="height:56px;padding:0 28px">Go again</button><a class="btn" href="/play" style="height:56px">Back</a></div>`;
+    $('#again').onclick = start;
+    net.act('fx.flash', { kind: 'burst', color: '#e8b23f', dur: 2 }).catch(() => {});
+  }
+}
+function mark(ok) {
+  if (!running || lock) return;
+  lock = true; setTimeout(() => (lock = false), 900);
+  if (ok) { score++; gotList.push($('#word').textContent); }
+  document.body.className = ok ? 'ok-bg' : 'pass-bg';
+  $('#card').className = ok ? 'ok-bg' : 'pass-bg';
+  $('#card').innerHTML = `<div id="word">${ok ? 'Got it!' : 'Pass'}</div>`;
+  navigator.vibrate?.(ok ? [40, 40, 40] : 80);
+  net.act('fx.flash', { kind: ok ? 'burst' : 'flash', color: ok ? '#24a35a' : '#d6312b', dur: 1 }).catch(() => {});
+  setTimeout(() => { document.body.className = ''; $('#card').className = ''; if (running) next(); }, 750);
+}
+$('#start').onclick = start;
+$('#ok').onclick = () => mark(true);
+$('#pass').onclick = () => mark(false);
+let neutral = true;
+addEventListener('deviceorientation', e => {
+  if (!running || e.gamma == null) return;
+  const g = e.gamma; // landscape on the forehead: gamma swings as you tilt face down/up
+  if (Math.abs(g) > 65) { neutral = true; return; }
+  if (!neutral) return;
+  if (Math.abs(g) < 30) { neutral = false; mark(Math.sign(g) === Math.sign(window.orientation || 90) ? true : false); }
+});
+</script>
+</body>
+</html>

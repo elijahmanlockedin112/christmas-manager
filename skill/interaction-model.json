@@ -1,0 +1,993 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "north pole",
+      "intents": [
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
+          "samples": []
+        },
+        {
+          "name": "TellJokeIntent",
+          "samples": [
+            "tell me a joke",
+            "tell me a christmas joke",
+            "give me a joke",
+            "joke",
+            "another joke",
+            "make me laugh",
+            "tell me a funny joke",
+            "i want a joke",
+            "say something funny",
+            "tell me another joke"
+          ]
+        },
+        {
+          "name": "CountdownIntent",
+          "samples": [
+            "how many days until christmas",
+            "how long until christmas",
+            "how many sleeps until christmas",
+            "how many days left",
+            "christmas countdown",
+            "countdown",
+            "how many days till christmas",
+            "how long till christmas",
+            "how many sleeps left",
+            "how many more sleeps"
+          ]
+        },
+        {
+          "name": "SantaIntent",
+          "samples": [
+            "where is santa",
+            "where's santa",
+            "track santa",
+            "santa status",
+            "how far is santa",
+            "is santa coming",
+            "where is santa now",
+            "what is santa doing",
+            "has santa left the north pole",
+            "santa tracker"
+          ]
+        },
+        {
+          "name": "TreeColorIntent",
+          "slots": [
+            {
+              "name": "color",
+              "type": "TREE_COLOR"
+            }
+          ],
+          "samples": [
+            "make the tree {color}",
+            "turn the tree {color}",
+            "set the tree color to {color}",
+            "change the tree color to {color}",
+            "color the tree {color}",
+            "paint the tree {color}",
+            "make the lights {color}",
+            "turn the lights {color}",
+            "set the lights to {color}"
+          ]
+        },
+        {
+          "name": "TreeEffectIntent",
+          "slots": [
+            {
+              "name": "effect",
+              "type": "EFFECT"
+            }
+          ],
+          "samples": [
+            "set the tree to {effect}",
+            "set the tree effect to {effect}",
+            "switch the tree to {effect} mode",
+            "use the {effect} effect",
+            "change the pattern to {effect}",
+            "give the tree a {effect} effect",
+            "try {effect} mode",
+            "switch to the {effect} effect",
+            "put the tree in {effect} mode"
+          ]
+        },
+        {
+          "name": "TreeOnIntent",
+          "samples": [
+            "turn on the tree",
+            "turn the tree on",
+            "tree on",
+            "light the tree",
+            "switch on the tree",
+            "turn on the christmas tree",
+            "turn on the tree lights",
+            "light up the tree"
+          ]
+        },
+        {
+          "name": "TreeOffIntent",
+          "samples": [
+            "turn off the tree",
+            "turn the tree off",
+            "tree off",
+            "switch off the tree",
+            "turn off the christmas tree",
+            "turn off the tree lights",
+            "put out the tree"
+          ]
+        },
+        {
+          "name": "LightShowIntent",
+          "slots": [
+            {
+              "name": "song",
+              "type": "SONG"
+            }
+          ],
+          "samples": [
+            "start a light show",
+            "play a light show",
+            "start the light show",
+            "play {song}",
+            "play {song} on the tree",
+            "light show {song}",
+            "start a light show of {song}",
+            "do a light show for {song}",
+            "put on a light show",
+            "surprise me with a light show"
+          ]
+        },
+        {
+          "name": "StopShowIntent",
+          "samples": [
+            "stop the show",
+            "stop the light show",
+            "end the show",
+            "stop the music",
+            "cancel the light show",
+            "end the light show",
+            "turn off the show",
+            "stop the song"
+          ]
+        },
+        {
+          "name": "StartGameIntent",
+          "slots": [
+            {
+              "name": "game",
+              "type": "GAME"
+            }
+          ],
+          "samples": [
+            "let's play {game}",
+            "start {game}",
+            "start a game of {game}",
+            "play a game of {game}",
+            "launch {game}",
+            "i want to play {game}",
+            "game time",
+            "start a game",
+            "play a game"
+          ]
+        },
+        {
+          "name": "AdventIntent",
+          "samples": [
+            "what's today's advent",
+            "open today's advent door",
+            "advent calendar",
+            "what's behind today's door",
+            "today's advent challenge",
+            "open the advent calendar",
+            "what's in the advent calendar today",
+            "advent"
+          ]
+        },
+        {
+          "name": "ElfNameIntent",
+          "slots": [
+            {
+              "name": "name",
+              "type": "AMAZON.FirstName"
+            }
+          ],
+          "samples": [
+            "what's my elf name",
+            "give me an elf name",
+            "my name is {name} what is my elf name",
+            "what is my elf name",
+            "what is the elf name for {name}",
+            "make me an elf name",
+            "tell me my elf name",
+            "i am {name} what is my elf name",
+            "elf name for {name}",
+            "elf name"
+          ]
+        },
+        {
+          "name": "PartyIntent",
+          "samples": [
+            "start the party",
+            "party mode",
+            "let's party",
+            "throw a party",
+            "turn on party mode",
+            "it's party time",
+            "party time",
+            "start party mode"
+          ]
+        },
+        {
+          "name": "GoodnightIntent",
+          "samples": [
+            "goodnight",
+            "good night",
+            "goodnight tree",
+            "say goodnight",
+            "time for bed",
+            "bedtime",
+            "good night santa",
+            "it's bedtime",
+            "tuck in the tree"
+          ]
+        },
+        {
+          "name": "YuleLogIntent",
+          "samples": [
+            "light the yule log",
+            "yule log",
+            "put on the yule log",
+            "start the yule log",
+            "fireplace on the tv",
+            "show the yule log",
+            "burn the yule log",
+            "turn on the yule log"
+          ]
+        },
+        {
+          "name": "RadioIntent",
+          "slots": [
+            {
+              "name": "channel",
+              "type": "RADIO_CHANNEL"
+            }
+          ],
+          "samples": [
+            "play christmas radio",
+            "play the radio",
+            "start the radio",
+            "turn on christmas music",
+            "play {channel} radio",
+            "put on the radio",
+            "play christmas music",
+            "tune the radio to {channel}"
+          ]
+        }
+      ],
+      "types": [
+        {
+          "name": "TREE_COLOR",
+          "values": [
+            {
+              "id": "red",
+              "name": {
+                "value": "red",
+                "synonyms": [
+                  "christmas red",
+                  "bright red",
+                  "candy red"
+                ]
+              }
+            },
+            {
+              "id": "green",
+              "name": {
+                "value": "green",
+                "synonyms": [
+                  "christmas green",
+                  "bright green"
+                ]
+              }
+            },
+            {
+              "id": "blue",
+              "name": {
+                "value": "blue",
+                "synonyms": [
+                  "royal blue",
+                  "bright blue"
+                ]
+              }
+            },
+            {
+              "id": "white",
+              "name": {
+                "value": "white",
+                "synonyms": [
+                  "snow white",
+                  "bright white"
+                ]
+              }
+            },
+            {
+              "id": "warm-white",
+              "name": {
+                "value": "warm white",
+                "synonyms": [
+                  "soft white",
+                  "cozy white",
+                  "yellow white"
+                ]
+              }
+            },
+            {
+              "id": "cool-white",
+              "name": {
+                "value": "cool white",
+                "synonyms": [
+                  "daylight",
+                  "cold white",
+                  "blue white"
+                ]
+              }
+            },
+            {
+              "id": "gold",
+              "name": {
+                "value": "gold",
+                "synonyms": [
+                  "golden",
+                  "christmas gold"
+                ]
+              }
+            },
+            {
+              "id": "yellow",
+              "name": {
+                "value": "yellow",
+                "synonyms": [
+                  "sunny yellow"
+                ]
+              }
+            },
+            {
+              "id": "orange",
+              "name": {
+                "value": "orange",
+                "synonyms": [
+                  "tangerine"
+                ]
+              }
+            },
+            {
+              "id": "pink",
+              "name": {
+                "value": "pink",
+                "synonyms": [
+                  "light pink",
+                  "bubblegum"
+                ]
+              }
+            },
+            {
+              "id": "hot-pink",
+              "name": {
+                "value": "hot pink",
+                "synonyms": [
+                  "deep pink",
+                  "fuchsia"
+                ]
+              }
+            },
+            {
+              "id": "purple",
+              "name": {
+                "value": "purple",
+                "synonyms": [
+                  "royal purple",
+                  "grape"
+                ]
+              }
+            },
+            {
+              "id": "violet",
+              "name": {
+                "value": "violet",
+                "synonyms": [
+                  "lavender",
+                  "lilac"
+                ]
+              }
+            },
+            {
+              "id": "teal",
+              "name": {
+                "value": "teal",
+                "synonyms": [
+                  "turquoise",
+                  "aqua"
+                ]
+              }
+            },
+            {
+              "id": "cyan",
+              "name": {
+                "value": "cyan",
+                "synonyms": [
+                  "sky blue",
+                  "light blue"
+                ]
+              }
+            },
+            {
+              "id": "magenta",
+              "name": {
+                "value": "magenta",
+                "synonyms": [
+                  "bright pink"
+                ]
+              }
+            },
+            {
+              "id": "lime",
+              "name": {
+                "value": "lime",
+                "synonyms": [
+                  "lime green",
+                  "chartreuse"
+                ]
+              }
+            },
+            {
+              "id": "emerald",
+              "name": {
+                "value": "emerald",
+                "synonyms": [
+                  "forest green",
+                  "dark green",
+                  "pine green"
+                ]
+              }
+            },
+            {
+              "id": "ice-blue",
+              "name": {
+                "value": "ice blue",
+                "synonyms": [
+                  "icy blue",
+                  "frost blue",
+                  "baby blue"
+                ]
+              }
+            },
+            {
+              "id": "navy",
+              "name": {
+                "value": "navy",
+                "synonyms": [
+                  "dark blue",
+                  "midnight blue"
+                ]
+              }
+            },
+            {
+              "id": "amber",
+              "name": {
+                "value": "amber",
+                "synonyms": [
+                  "candle",
+                  "candlelight"
+                ]
+              }
+            },
+            {
+              "id": "silver",
+              "name": {
+                "value": "silver",
+                "synonyms": [
+                  "grey",
+                  "gray",
+                  "metallic"
+                ]
+              }
+            },
+            {
+              "id": "crimson",
+              "name": {
+                "value": "crimson",
+                "synonyms": [
+                  "scarlet",
+                  "cherry red"
+                ]
+              }
+            },
+            {
+              "id": "mint",
+              "name": {
+                "value": "mint",
+                "synonyms": [
+                  "mint green",
+                  "peppermint green"
+                ]
+              }
+            },
+            {
+              "id": "burgundy",
+              "name": {
+                "value": "burgundy",
+                "synonyms": [
+                  "wine",
+                  "maroon",
+                  "dark red"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "EFFECT",
+          "values": [
+            {
+              "id": "classic",
+              "name": {
+                "value": "classic",
+                "synonyms": [
+                  "classic christmas",
+                  "traditional",
+                  "christmas lights",
+                  "normal"
+                ]
+              }
+            },
+            {
+              "id": "retro",
+              "name": {
+                "value": "retro",
+                "synonyms": [
+                  "vintage",
+                  "old school",
+                  "big bulbs"
+                ]
+              }
+            },
+            {
+              "id": "twinkle",
+              "name": {
+                "value": "twinkle",
+                "synonyms": [
+                  "twinkling",
+                  "sparkle",
+                  "sparkling"
+                ]
+              }
+            },
+            {
+              "id": "candy-cane",
+              "name": {
+                "value": "candy cane",
+                "synonyms": [
+                  "candy canes",
+                  "stripes",
+                  "striped"
+                ]
+              }
+            },
+            {
+              "id": "snowfall",
+              "name": {
+                "value": "snowfall",
+                "synonyms": [
+                  "snow",
+                  "snowing",
+                  "snowflakes",
+                  "falling snow"
+                ]
+              }
+            },
+            {
+              "id": "fireplace",
+              "name": {
+                "value": "fireplace",
+                "synonyms": [
+                  "fire",
+                  "cozy fire",
+                  "crackling fire"
+                ]
+              }
+            },
+            {
+              "id": "aurora",
+              "name": {
+                "value": "aurora",
+                "synonyms": [
+                  "northern lights",
+                  "aurora borealis"
+                ]
+              }
+            },
+            {
+              "id": "peppermint",
+              "name": {
+                "value": "peppermint",
+                "synonyms": [
+                  "peppermint swirl",
+                  "mint swirl"
+                ]
+              }
+            },
+            {
+              "id": "rainbow",
+              "name": {
+                "value": "rainbow",
+                "synonyms": [
+                  "colorful",
+                  "all colors",
+                  "multicolor"
+                ]
+              }
+            },
+            {
+              "id": "starlight",
+              "name": {
+                "value": "starlight",
+                "synonyms": [
+                  "stars",
+                  "starry",
+                  "starry night"
+                ]
+              }
+            },
+            {
+              "id": "gingerbread",
+              "name": {
+                "value": "gingerbread",
+                "synonyms": [
+                  "ginger bread",
+                  "cookie",
+                  "cookies"
+                ]
+              }
+            },
+            {
+              "id": "frost",
+              "name": {
+                "value": "frost",
+                "synonyms": [
+                  "frosty",
+                  "icy",
+                  "ice"
+                ]
+              }
+            },
+            {
+              "id": "chase",
+              "name": {
+                "value": "chase",
+                "synonyms": [
+                  "chasing",
+                  "racing",
+                  "running lights"
+                ]
+              }
+            },
+            {
+              "id": "ornaments",
+              "name": {
+                "value": "ornaments",
+                "synonyms": [
+                  "ornament",
+                  "baubles",
+                  "bauble"
+                ]
+              }
+            },
+            {
+              "id": "comet",
+              "name": {
+                "value": "comet",
+                "synonyms": [
+                  "shooting star",
+                  "shooting stars",
+                  "comets"
+                ]
+              }
+            },
+            {
+              "id": "breathe",
+              "name": {
+                "value": "breathe",
+                "synonyms": [
+                  "breathing",
+                  "pulse",
+                  "pulsing",
+                  "fade"
+                ]
+              }
+            },
+            {
+              "id": "solid",
+              "name": {
+                "value": "solid",
+                "synonyms": [
+                  "steady",
+                  "plain",
+                  "solid color"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "SONG",
+          "values": [
+            {
+              "id": "jingle-bells",
+              "name": {
+                "value": "Jingle Bells"
+              }
+            },
+            {
+              "id": "we-wish-you-a-merry-christmas",
+              "name": {
+                "value": "We Wish You a Merry Christmas",
+                "synonyms": [
+                  "wish you a merry christmas"
+                ]
+              }
+            },
+            {
+              "id": "deck-the-halls",
+              "name": {
+                "value": "Deck the Halls"
+              }
+            },
+            {
+              "id": "up-on-the-housetop",
+              "name": {
+                "value": "Up on the Housetop"
+              }
+            },
+            {
+              "id": "jolly-old-saint-nicholas",
+              "name": {
+                "value": "Jolly Old Saint Nicholas",
+                "synonyms": [
+                  "jolly old st nick",
+                  "jolly old saint nick"
+                ]
+              }
+            },
+            {
+              "id": "joy-to-the-world",
+              "name": {
+                "value": "Joy to the World"
+              }
+            },
+            {
+              "id": "silent-night",
+              "name": {
+                "value": "Silent Night"
+              }
+            },
+            {
+              "id": "o-christmas-tree",
+              "name": {
+                "value": "O Christmas Tree"
+              }
+            },
+            {
+              "id": "god-rest-ye-merry-gentlemen",
+              "name": {
+                "value": "God Rest Ye Merry Gentlemen",
+                "synonyms": [
+                  "god rest ye merry gentleman"
+                ]
+              }
+            },
+            {
+              "id": "hark-the-herald-angels-sing",
+              "name": {
+                "value": "Hark the Herald Angels Sing"
+              }
+            },
+            {
+              "id": "carol-of-the-bells",
+              "name": {
+                "value": "Carol of the Bells",
+                "synonyms": [
+                  "ukrainian bell carol"
+                ]
+              }
+            },
+            {
+              "id": "dance-of-the-sugar-plum-fairy",
+              "name": {
+                "value": "Dance of the Sugar Plum Fairy",
+                "synonyms": [
+                  "sugar plum fairy"
+                ]
+              }
+            },
+            {
+              "id": "russian-dance",
+              "name": {
+                "value": "Russian Dance",
+                "synonyms": [
+                  "trepak"
+                ]
+              }
+            },
+            {
+              "id": "the-first-noel",
+              "name": {
+                "value": "The First Noel",
+                "synonyms": [
+                  "first noel",
+                  "first nowell"
+                ]
+              }
+            },
+            {
+              "id": "angels-we-have-heard-on-high",
+              "name": {
+                "value": "Angels We Have Heard on High"
+              }
+            },
+            {
+              "id": "good-king-wenceslas",
+              "name": {
+                "value": "Good King Wenceslas"
+              }
+            },
+            {
+              "id": "o-come-all-ye-faithful",
+              "name": {
+                "value": "O Come All Ye Faithful"
+              }
+            },
+            {
+              "id": "away-in-a-manger",
+              "name": {
+                "value": "Away in a Manger"
+              }
+            },
+            {
+              "id": "here-we-come-a-wassailing",
+              "name": {
+                "value": "Here We Come A-wassailing",
+                "synonyms": [
+                  "here we come a wassailing",
+                  "wassailing"
+                ]
+              }
+            },
+            {
+              "id": "it-came-upon-the-midnight-clear",
+              "name": {
+                "value": "It Came Upon the Midnight Clear"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GAME",
+          "values": [
+            {
+              "id": "trivia",
+              "name": {
+                "value": "trivia",
+                "synonyms": [
+                  "christmas trivia",
+                  "quiz",
+                  "trivia game"
+                ]
+              }
+            },
+            {
+              "id": "name-that-song",
+              "name": {
+                "value": "name that song",
+                "synonyms": [
+                  "guess the song",
+                  "song game",
+                  "name that tune"
+                ]
+              }
+            },
+            {
+              "id": "would-you-rather",
+              "name": {
+                "value": "would you rather",
+                "synonyms": [
+                  "would you rather game"
+                ]
+              }
+            },
+            {
+              "id": "pictionary",
+              "name": {
+                "value": "pictionary",
+                "synonyms": [
+                  "drawing game",
+                  "draw and guess"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "RADIO_CHANNEL",
+          "values": [
+            {
+              "id": "christmas",
+              "name": {
+                "value": "christmas",
+                "synonyms": [
+                  "christmas radio",
+                  "classic christmas",
+                  "holiday"
+                ]
+              }
+            },
+            {
+              "id": "xmasrocks",
+              "name": {
+                "value": "christmas rocks",
+                "synonyms": [
+                  "xmas rocks",
+                  "rock",
+                  "rocking christmas"
+                ]
+              }
+            },
+            {
+              "id": "jollysoul",
+              "name": {
+                "value": "jolly soul",
+                "synonyms": [
+                  "soul",
+                  "christmas soul"
+                ]
+              }
+            },
+            {
+              "id": "deptstore",
+              "name": {
+                "value": "department store",
+                "synonyms": [
+                  "dept store",
+                  "mall",
+                  "department store christmas"
+                ]
+              }
+            },
+            {
+              "id": "xmasinfrisko",
+              "name": {
+                "value": "christmas in frisko",
+                "synonyms": [
+                  "frisko",
+                  "christmas in san francisco",
+                  "xmas in frisko"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

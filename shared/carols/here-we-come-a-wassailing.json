@@ -1,0 +1,12 @@
+{ "hidden": true,
+  "id": "here-we-come-a-wassailing", "title": "Here We Come A-wassailing", "by": "Traditional English carol", "year": 1850,
+  "bpm": 112, "meter": 4, "instrumental": false, "mood": "bright",
+  "lines": [
+    { "melody": "E4:1 | A4:1 A4:1 A4:1 B4:1 | C5:1 B4:1 A4:1 A4:1 | G4:1 A4:1 G4:1 E4:1", "chords": "Am:1 | Am:4 | C:2 Am:2 | G:2 Em:2", "lyrics": "Here we come a was sail ing a mong the leaves so green," },
+    { "melody": "E4:1 | A4:1 A4:1 A4:1 B4:1 | C5:1 B4:1 A4:1 B4:1 | G4:1 A4:2", "chords": "Am:1 | Am:4 | C:2 Am:2 | G:1 Am:2", "lyrics": "Here we come a wan d'ring so fair to be seen." },
+    { "melody": "C5:1 C5:1 D5:1 E5:1 | D5:2 C5:2", "chords": "C:4 | G:2 C:2", "lyrics": "Love and joy come to you," },
+    { "melody": "C5:1 C5:1 D5:1 E5:1 | D5:1 C5:1 B4:2", "chords": "C:4 | G:4", "lyrics": "and to you your was sail too," },
+    { "melody": "G4:1 A4:1 B4:1 C5:1 | D5:1 D5:1 D5:1 C5:1 | B4:1 A4:1 B4:1 G4:1", "chords": "C:4 | G:4 | G:2 C:2", "lyrics": "And God bless you and send you a Hap py New Year," },
+    { "melody": "G4:1 A4:1 B4:1 C5:1 | D5:1 D5:1 C5:1 B4:1 | C5:4", "chords": "C:4 | G:4 | C:4", "lyrics": "and God send you a Hap py New Year." }
+  ]
+}

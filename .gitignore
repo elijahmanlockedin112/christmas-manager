@@ -1,0 +1,9 @@
+node_modules/
+# live data on the Pi: settings, Alexa cookie, Claude key, spend ledger, Secret Santa draw
+data/
+*.log
+.claude/
+start-*.cmd
+# private operator notes (home network addresses, usernames)
+LINKS.md
+CLAUDE.md
