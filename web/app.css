@@ -338,7 +338,7 @@ body.dd-on .host-top { display: none; } /* a pad on screen is the whole screen: 
 .dd-phrase { display: block; font-family: var(--serif); font-size: 28px; font-weight: 600; line-height: 1.15; color: var(--gold); }
 .dd-padhost { display: flex; justify-content: center; }
 .dpad { position: relative; flex: none; width: min(100%, calc((100dvh - 300px) * 1.3333)); min-width: 260px; aspect-ratio: 4 / 3; background: #fbf5e9; border-radius: 12px; touch-action: none; overflow: hidden; box-shadow: 0 0 0 1px var(--line2); }
-.dpad.round { width: min(100%, calc(100dvh - 280px)); aspect-ratio: 1; border-radius: 50%; box-shadow: 0 0 0 5px var(--gold), 0 0 0 6px rgba(0, 0, 0, .45); }
+.dpad.round { width: min(100%, calc(100dvh - 330px)); aspect-ratio: 1; border-radius: 50%; box-shadow: 0 0 0 5px var(--gold), 0 0 0 6px rgba(0, 0, 0, .45); }
 .dpad canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .dd-peek { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .3; pointer-events: none; }
 .dd-tools { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; }
