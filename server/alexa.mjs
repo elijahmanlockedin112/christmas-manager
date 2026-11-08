@@ -8,6 +8,38 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { createRequire } from 'node:module';
+import http from 'node:http';
+
+// The sign-in proxy only speaks http, but Amazon's pages push the browser to https://<pi>:47927/...
+// (ERR_SSL_PROTOCOL_ERROR right after typing the email):
+//  - their Content-Security-Policy says upgrade-insecure-requests, so the browser upgrades the form post
+//  - HSTS headers, and sometimes redirects that point at https://<pi>:47927/
+// On the sign-in proxy's responses only: drop those headers and turn such redirects back into http.
+let redirectFixFor = '', proxyPortFix = 0;
+const FORCE_HTTPS = ['content-security-policy', 'content-security-policy-report-only', 'strict-transport-security'];
+export function fixProxyRedirects(httpBase) {
+  const httpsBase = httpBase.replace(/^http:/, 'https:');
+  proxyPortFix = +(new URL(httpBase).port) || 80;
+  if (redirectFixFor === httpsBase) return;
+  const first = !redirectFixFor;
+  redirectFixFor = httpsBase;
+  if (!first) return;
+  const fix = v => (typeof v === 'string' && v.startsWith(redirectFixFor) ? 'http' + v.slice(5) : v);
+  const orig = http.ServerResponse.prototype.writeHead;
+  http.ServerResponse.prototype.writeHead = function (code, ...rest) {
+    try {
+      const loc = this.getHeader('location');
+      if (loc) this.setHeader('location', fix(loc));
+      const onProxy = this.req?.socket?.localPort === proxyPortFix;
+      if (onProxy) for (const k of FORCE_HTTPS) this.removeHeader(k);
+      for (const h of rest) if (h && typeof h === 'object' && !Array.isArray(h)) for (const k of Object.keys(h)) {
+        if (k.toLowerCase() === 'location') h[k] = fix(h[k]);
+        if (onProxy && FORCE_HTTPS.includes(k.toLowerCase())) delete h[k];
+      }
+    } catch { /* never break a response */ }
+    return orig.call(this, code, ...rest);
+  };
+}
 
 const require = createRequire(import.meta.url);
 
@@ -73,8 +105,11 @@ export class AlexaBridge {
       useWsMqtt: false,
       usePushConnection: false,
       cookieRefreshInterval: 7 * 24 * 60 * 60 * 1000,
-      logger: () => { },
+      // sign-in proxy redirects and errors go to the Pi's log (no cookies or passwords are in these lines)
+      // only redirect targets and proxy failures: never account data, emails or tokens
+      logger: (...a) => { const s = a.join(' '); if (/^(Redirect: Final|Proxy-Error|ERROR:)/.test(s) && !/@|"email"|cookie|token/i.test(s)) this.app.log('[alexa login]', s.replace(/\?.*$/, '').slice(0, 160)); },
     };
+    fixProxyRedirects(`http://${opts.proxyOwnIp}:${opts.proxyPort}/`);
     remote.init(opts, err => {
       if (err) {
         const msg = String(err.message || err);
