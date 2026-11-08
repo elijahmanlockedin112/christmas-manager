@@ -245,13 +245,20 @@ test('TreeOn / TreeOff', async () => {
   assert.deepEqual((await run('TreeOffIntent')).calls, [['lights.set', { power: false }]]);
 });
 
-test('LightShowIntent with and without a song, and failure', async () => {
-  let x = await run('LightShowIntent');
+test('LightShowIntent plays real songs (radio) by default', async () => {
+  const x = await run('LightShowIntent', { song: slot('song', 'silent night', 'silent-night') });
+  assert.deepEqual(x.calls, [['radio.play', {}]]);
+  assert.match(x.s, /radio/i);
+});
+
+test('LightShowIntent with and without a song, and failure (carol shows turned back on)', async () => {
+  const carols = (a) => { a.config.settings = { realSongsOnly: false }; };
+  let x = await run('LightShowIntent', {}, carols);
   assert.deepEqual(x.calls, [['show.play', { random: true }]]);
   assert.match(x.s, /Jingle Bells/);
-  x = await run('LightShowIntent', { song: slot('song', 'silent night', 'silent-night') });
+  x = await run('LightShowIntent', { song: slot('song', 'silent night', 'silent-night') }, carols);
   assert.deepEqual(x.calls, [['show.play', { song: 'silent night' }]]);
-  const bad = await run('LightShowIntent', { song: slot('song', 'zzz') }, (a) => { a.act = async () => { throw new Error('song not found'); }; });
+  const bad = await run('LightShowIntent', { song: slot('song', 'zzz') }, (a) => { carols(a); a.act = async () => { throw new Error('song not found'); }; });
   assert.match(bad.s, /songbook/);
 });
 

@@ -57,7 +57,8 @@ class Page {
   }
   async goto(url) { await this.send('Page.navigate', { url }); await sleep(1500); }
   async eval(expr) { const r = await this.send('Runtime.evaluate', { expression: expr, awaitPromise: true, returnByValue: true }); if (r.exceptionDetails) throw new Error(r.exceptionDetails.exception?.description || 'eval failed'); return r.result.value; }
-  async shot(file) { const r = await this.send('Page.captureScreenshot', { format: 'png' }); fs.writeFileSync(file, Buffer.from(r.data, 'base64')); return file; }
+  // background tabs don't paint, so a screenshot of one can hang: bring it forward first
+  async shot(file) { await this.send('Page.bringToFront'); const r = await this.send('Page.captureScreenshot', { format: 'png' }); fs.writeFileSync(file, Buffer.from(r.data, 'base64')); return file; }
   // real input: find the element's centre, check it's the top element there, then tap it
   async tap(selector) {
     await this.send('Page.bringToFront');

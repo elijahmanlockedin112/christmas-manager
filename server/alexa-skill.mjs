@@ -359,6 +359,11 @@ const HANDLERS = {
   },
   async LightShowIntent({ app, slots }) {
     const s = slots.song;
+    // the family wants real recordings only: the synthesized carol shows are off unless realSongsOnly is false
+    if (app.config?.settings?.realSongsOnly !== false) {
+      await app.act('radio.play', {});
+      return reply('Christmas radio is on the TV, with real songs. The tree is dancing along!');
+    }
     const r = await app.act('show.play', slots.song?.value ? { song: resolveSong(s) } : { random: true });
     return reply(`Cueing up ${esc(r?.title || 'a surprise show')}! Watch the tree and the TV.`);
   },

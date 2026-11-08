@@ -1,6 +1,12 @@
 // Party games. Phones join as players (/play), the TV shows the board (/tv), the iPad hosts (/).
 // Public game state lives in app.state.game and is broadcast; secrets (the Pictionary word,
 // Secret Santa matches) go only to the device that may see them.
+import fs from 'node:fs';
+import path from 'node:path';
+import { previewFor } from './previews.mjs';
+
+// one colour per person when everyone plays for themselves
+export const PLAYER_COLORS = ['#d6312b', '#1f9a52', '#e0a92e', '#3a7be0', '#b45ad8', '#e8743b', '#2bb3b1', '#d94f8c'];
 
 export const TEAMS = [
   { id: 'red', name: 'Team Holly', color: '#d6312b' },
@@ -41,7 +47,8 @@ export class Games {
     this.strokes = [];
     this.drawIdx = -1;
     // the family roster for pass-the-iPad play is remembered between restarts
-    for (const lp of app.config.roster || []) this.players.set(lp.id, { id: lp.id, name: lp.name, team: lp.team, score: 0, sockets: new Set(), local: true });
+    for (const lp of app.config.roster || []) this.players.set(lp.id, { id: lp.id, name: lp.name, team: lp.team, photo: lp.photo || 0, score: 0, sockets: new Set(), local: true });
+    this.streak = {}; // pid -> correct answers in a row (solo trivia)
     this.app.state.players = this.publicPlayers();
   }
   get g() { return this.app.state.game; }
@@ -50,11 +57,29 @@ export class Games {
   // ---------- players ----------
   // local = plays on the iPad (pass it around); otherwise a phone that joined at /play
   publicPlayers() {
-    return [...this.players.values()].map(p => ({ id: p.id, name: p.name, team: p.team, score: p.score, local: !!p.local, online: !!p.local || p.sockets.size > 0 }));
+    return [...this.players.values()].map((p, i) => ({ id: p.id, name: p.name, team: p.team, color: PLAYER_COLORS[i % PLAYER_COLORS.length], score: p.score, photo: p.photo || 0, local: !!p.local, online: !!p.local || p.sockets.size > 0 }));
+  }
+  // Everyone for themselves (the default for the family): scores, turns and the winner are per person.
+  solo() { return this.app.config.settings.solo !== false; }
+  // Solo trivia passes the iPad: one person per question, on the TV with a timer.
+  hotSeat() { return this.solo() && this.localCount() > 0 && ![...this.players.values()].some(p => !p.local && p.sockets.size); }
+  setPhoto(pid, jpeg) {
+    const p = this.players.get(pid);
+    if (!p) throw new Error('Who is this photo for?');
+    const m = /^data:image\/jpeg;base64,([A-Za-z0-9+/=]+)$/.exec(String(jpeg || ''));
+    if (!m) throw new Error('That photo did not come through. Try again.');
+    const buf = Buffer.from(m[1], 'base64');
+    if (buf.length < 500 || buf.length > 400000) throw new Error('That photo is too big. Try again.');
+    const dir = path.join(this.app.dataDir, 'players');
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, `${pid.replace(/[^\w-]/g, '')}.jpg`), buf);
+    p.photo = Date.now();
+    this.syncPlayers();
+    return p.photo;
   }
   syncPlayers() {
     this.app.state.players = this.publicPlayers();
-    this.app.config.roster = [...this.players.values()].filter(p => p.local).map(p => ({ id: p.id, name: p.name, team: p.team }));
+    this.app.config.roster = [...this.players.values()].filter(p => p.local).map(p => ({ id: p.id, name: p.name, team: p.team, photo: p.photo || 0 }));
     this.app.saveConfig();
     this.app.changed();
   }
@@ -125,7 +150,14 @@ export class Games {
     this.app.lights.clearOverlays();
     this.secret = {};
     if (opts.resetScores !== false) this.resetScores();
-    this.g = { kind, phase: 'lobby', round: 0, total: opts.rounds || ({ trivia: 10, 'name-that-song': 8, 'would-you-rather': 8, pictionary: 6 })[kind] || 8, opts, startedAt: Date.now() };
+    this.streak = {};
+    this.g = { kind, phase: 'lobby', round: 0, total: opts.rounds || ({ trivia: 10, 'name-that-song': 8, 'would-you-rather': 8, pictionary: 6 })[kind] || 8, opts, startedAt: Date.now(), solo: this.solo() };
+    if (kind === 'trivia' && this.hotSeat()) {
+      // everyone gets the same number of turns, in a shuffled order
+      const order = shuffle([...this.players.values()].filter(p => p.local).map(p => p.id));
+      const each = Math.max(1, Math.round((opts.rounds || 10) / order.length));
+      this.g = { ...this.g, hotSeat: true, order, total: Math.min(30, each * order.length) };
+    }
     this.app.setTvScene('game', true);
     return { ok: true };
   }
@@ -134,7 +166,8 @@ export class Games {
     if (!g) return;
     if (g.round >= g.total && g.phase !== 'lobby') return this.final();
     g.round++;
-    if (g.kind === 'trivia') this.triviaQuestion();
+    if (g.kind === 'trivia' && g.hotSeat) this.triviaTurn();
+    else if (g.kind === 'trivia') this.triviaQuestion();
     else if (g.kind === 'name-that-song') this.songRound();
     else if (g.kind === 'would-you-rather') this.wyrRound();
     else if (g.kind === 'pictionary') this.pictRound();
@@ -145,15 +178,38 @@ export class Games {
     const scores = this.teamScores();
     const winner = Object.entries(scores).sort((a, b) => b[1] - a[1])[0];
     const board = this.publicPlayers().sort((a, b) => b.score - a.score);
-    this.g = { ...this.g, phase: 'final', teamScores: scores, winner: winner ? winner[0] : null, board };
-    const col = winner ? teamOf(winner[0]).color : '#e0a92e';
+    let col = winner ? teamOf(winner[0]).color : '#e0a92e';
+    if (this.g.solo) {
+      // ties share the crown
+      const top = board[0]?.score || 0;
+      const champs = top > 0 ? board.filter(p => p.score === top).map(p => p.id) : [];
+      this.g = { ...this.g, phase: 'final', board, champs, winner: null, turn: null };
+      col = board.find(p => p.id === champs[0])?.color || col;
+    } else this.g = { ...this.g, phase: 'final', teamScores: scores, winner: winner ? winner[0] : null, board };
     this.app.lights.overlay({ kind: 'wipe', color: col, dur: 1.4, hold: 3 });
     setTimeout(() => this.app.lights.overlay({ kind: 'burst', color: '#ffffff', dur: 2.5 }), 1800);
     this.app.sfx('fanfare');
   }
 
   // ---------- Trivia ----------
-  triviaQuestion() {
+  // Solo trivia (hot seat): "Trinity, you're up!" on the TV with her photo; she takes the iPad and taps
+  // ready, then the question and her timer start. Only she can answer.
+  triviaTurn() {
+    const g = this.g;
+    const live = g.order.filter(id => this.players.has(id));
+    if (!live.length) return this.final();
+    const pid = live[(g.round - 1) % live.length];
+    const p = this.players.get(pid), pub = this.publicPlayers().find(x => x.id === pid);
+    this.secret = {};
+    this.g = { ...g, phase: 'turn', turn: { pid, name: p.name, color: pub.color, photo: pub.photo, streak: this.streak[pid] || 0 }, q: null, choices: null, answer: null, answered: [], gained: null, picked: null };
+    this.app.sfx('question');
+  }
+  turnReady(round) {
+    const g = this.g;
+    if (!g || g.kind !== 'trivia' || g.phase !== 'turn' || (round !== undefined && round !== g.round)) return;
+    this.triviaQuestion({ seconds: g.opts.seconds || 20 });
+  }
+  triviaQuestion({ seconds } = {}) {
     const pool = this.app.content.trivia.filter((q, i) => !this.used.trivia.has(i) && (!this.g.opts.difficulty || q.difficulty <= this.g.opts.difficulty));
     if (!pool.length) this.used.trivia.clear();
     const all = this.app.content.trivia;
@@ -162,7 +218,7 @@ export class Games {
     const order = shuffle([0, 1, 2, 3]);
     // passing the iPad around takes time: give everyone room to answer
     const locals = this.localCount();
-    const secs = this.g.opts.seconds || (locals ? Math.max(20, 12 + 8 * locals) : 20);
+    const secs = seconds || this.g.opts.seconds || (locals ? Math.max(20, 12 + 8 * locals) : 20);
     this.secret = { answer: order.indexOf(pick.answer), answers: {} };
     this.g = {
       ...this.g, phase: 'question', q: pick.q, category: pick.category, difficulty: pick.difficulty,
@@ -178,8 +234,10 @@ export class Games {
     const g = this.g;
     if (!g || g.kind !== 'trivia' || g.phase !== 'question' || !this.players.has(pid) || this.secret.answers[pid] !== undefined) return;
     if (!Number.isInteger(choice) || choice < -1 || choice > 3) return;
+    if (g.hotSeat && g.turn?.pid !== pid) return; // only the person in the hot seat
     this.secret.answers[pid] = { choice, at: Date.now() };
     g.answered = Object.keys(this.secret.answers);
+    if (g.hotSeat) { g.picked = choice; this.app.changed(); this.after(1400, () => this.triviaReveal()); return; } // a beat of suspense
     this.app.changed();
     const online = this.publicPlayers().filter(p => p.online).length;
     if (g.answered.length >= online && online > 0) this.after(600, () => this.triviaReveal());
@@ -194,53 +252,96 @@ export class Games {
       if (a.choice < 0) continue; // skipped (pass-the-iPad)
       counts[a.choice]++;
       if (a.choice === this.secret.answer) {
-        // speed bonus only when everyone answers at once on their own phone; passing the iPad is flat 1000
-        const pts = this.localCount() ? 1000 : Math.round(500 + 500 * Math.max(0, (g.endsAt - a.at) / dur));
+        // speed bonus when each person answers on their own (phone or hot seat); passing the iPad
+        // around for one shared question is flat 1000. Hot seat: 3+ in a row adds a streak bonus.
+        let pts = this.localCount() && !g.hotSeat ? 1000 : Math.round((500 + 500 * Math.max(0, (g.endsAt - a.at) / dur)) / 10) * 10;
+        if (g.hotSeat) { this.streak[pid] = (this.streak[pid] || 0) + 1; if (this.streak[pid] >= 3) pts += 250; }
         gained[pid] = pts;
         const p = this.players.get(pid);
         if (p) p.score += pts;
       }
     }
+    if (g.hotSeat && g.turn && !gained[g.turn.pid]) this.streak[g.turn.pid] = 0;
     this.syncPlayers();
-    this.g = { ...g, phase: 'reveal', answer: this.secret.answer, fact: this.secret.fact, counts, gained };
+    const turn = g.turn ? { ...g.turn, streak: this.streak[g.turn.pid] || 0, timedOut: !this.secret.answers[g.turn.pid] } : g.turn;
+    this.g = { ...g, phase: 'reveal', answer: this.secret.answer, fact: this.secret.fact, counts, gained, turn };
     const winners = Object.keys(gained).map(id => this.players.get(id)).filter(Boolean);
     if (winners.length) {
       const fastest = Object.entries(gained).sort((a, b) => b[1] - a[1])[0][0];
-      this.app.lights.overlay({ kind: 'flash', color: teamOf(this.players.get(fastest)?.team).color, dur: 1.2 });
+      this.app.lights.overlay({ kind: 'flash', color: g.solo ? this.publicPlayers().find(x => x.id === fastest)?.color || '#e0a92e' : teamOf(this.players.get(fastest)?.team).color, dur: 1.2 });
       this.app.lights.overlay({ kind: 'burst', color: '#ffffff', dur: 1.8 });
       this.app.sfx('correct');
     } else { this.app.lights.overlay({ kind: 'flash', color: '#3a1010', dur: 1 }); this.app.sfx('wrong'); }
-    if (this.g.opts.auto !== false) this.after(8000, () => this.next());
+    if (this.g.opts.auto !== false) this.after(g.hotSeat ? 6500 : 8000, () => this.next());
   }
 
   // ---------- Name That Christmas Song ----------
   async songRound() {
-    const useAlexa = this.app.alexa?.ready && this.g.opts.source !== 'carols';
-    let item, choices;
-    if (useAlexa) {
-      let hits = this.app.content.hits.filter((h, i) => !this.used.hits.has(i) && (!this.g.opts.level || h.level <= this.g.opts.level));
+    const opts = this.g.opts;
+    let useAlexa = !!this.app.alexa?.ready && opts.source !== 'carols' && opts.source !== 'preview';
+    // XM_PREVIEWS=0: no internet lookups (the e2e test server)
+    let usePreview = !useAlexa && opts.source !== 'carols' && this.app.content.hits.length > 0 && process.env.XM_PREVIEWS !== '0';
+    let item, choices, preview = null, artwork = null;
+    const pickHit = () => {
+      let hits = this.app.content.hits.filter((h, i) => !this.used.hits.has(i) && (!opts.level || h.level <= opts.level));
       if (!hits.length) { this.used.hits.clear(); hits = this.app.content.hits; }
-      item = hits[Math.floor(Math.random() * hits.length)] || this.app.content.hits[0];
-      this.used.hits.add(this.app.content.hits.indexOf(item));
-      const others = shuffle(this.app.content.hits.filter(h => h.title !== item.title)).slice(0, 3);
-      choices = shuffle([item, ...others]).map(h => ({ title: h.title, artist: h.artist }));
+      const h = hits[Math.floor(Math.random() * hits.length)] || this.app.content.hits[0];
+      this.used.hits.add(this.app.content.hits.indexOf(h));
+      return h;
+    };
+    const hitChoices = h => shuffle([h, ...shuffle(this.app.content.hits.filter(x => x.title !== h.title)).slice(0, 3)]).map(x => ({ title: x.title, artist: x.artist }));
+    if (usePreview) {
+      const round = this.g.round;
+      for (let tries = 0; tries < 4 && !preview; tries++) {
+        const h = pickHit();
+        const p = await previewFor(h, { dataDir: this.app.dataDir, log: this.app.log });
+        if (this.g?.kind !== 'name-that-song' || this.g.round !== round) return; // game ended or moved on while looking up
+        if (p) { preview = p; item = h; }
+      }
+      if (!preview) usePreview = false;
+    }
+    if (usePreview) {
+      choices = hitChoices(item);
+      artwork = preview.artwork;
+    } else if (useAlexa) {
+      item = pickHit();
+      choices = hitChoices(item);
     } else {
       const songs = this.app.songList();
       const s = songs[Math.floor(Math.random() * songs.length)];
       item = { title: s.title, id: s.id };
       choices = shuffle([s, ...shuffle(songs.filter(x => x.id !== s.id)).slice(0, 3)]).map(x => ({ title: x.title, artist: '' }));
     }
-    this.secret = { item, answer: choices.findIndex(c => c.title === item.title), locked: new Set() };
-    this.g = { ...this.g, phase: 'playing', source: useAlexa ? 'alexa' : 'carols', choices, buzz: null, answer: null, wrong: [], endsAt: Date.now() + 35000, startsAt: Date.now() + 2500 };
+    const startsAt = Date.now() + 2500;
+    this.secret = { item, answer: choices.findIndex(c => c.title === item.title), locked: new Set(), artwork, previewStartsAt: startsAt, previewOffset: 0 };
+    this.g = { ...this.g, phase: 'playing', source: usePreview ? 'preview' : useAlexa ? 'alexa' : 'carols', choices, buzz: null, answer: null, wrong: [], endsAt: Date.now() + 35000, startsAt };
+    delete this.g.preview; delete this.g.artwork;
+    if (usePreview) this.g.preview = { url: preview.url, startsAt };
     this.app.sfx('question');
     this.after(35000, () => this.songReveal(null));
-    if (useAlexa) {
+    if (usePreview) {
+      // the TV plays the clip itself (web/lib/preview-player.js)
+    } else if (useAlexa) {
       try { await this.app.alexa.text(`play ${item.ask}`); } catch (e) { this.app.log('alexa', e.message); }
     } else {
       this.app.playShow(item.id, { lyrics: false, game: true, delay: 2500 });
     }
   }
   // Stops whatever music a game started (carol on the TV or a track on the Echo).
+  // Pause/resume the TV-played preview clip; tracks seconds played so the TV can resume.
+  previewPause(paused) {
+    const g = this.g, pv = g?.preview;
+    if (!pv || g.source !== 'preview') return;
+    const s = this.secret;
+    if (paused && !pv.paused) {
+      s.previewOffset = Math.max(0, (s.previewOffset || 0) + (Date.now() - Math.max(s.previewStartsAt || 0, s.previewResumedAt || 0)) / 1000);
+      g.preview = { ...pv, paused: true, offset: +s.previewOffset.toFixed(2) };
+    } else if (!paused && pv.paused) {
+      s.previewResumedAt = Date.now();
+      g.preview = { ...pv, paused: false, offset: pv.offset || 0 };
+    } else return;
+    this.app.changed();
+  }
   stopGameAudio() {
     if (this.app.state.show.game) this.app.stopShow();
     if (this.g?.kind === 'name-that-song' && this.g.source === 'alexa') this.app.alexa?.command('pause').catch(() => { });
@@ -255,6 +356,7 @@ export class Games {
     this.app.lights.overlay({ kind: 'flash', color: teamOf(p.team).color, dur: 10, hold: 0 });
     this.app.sfx('buzz');
     if (g.source === 'alexa') this.app.alexa.command('pause').catch(() => { });
+    else if (g.source === 'preview') this.previewPause(true);
     else this.app.pauseShow(true);
     this.after(10000, () => this.songJudge(pid, -1));
   }
@@ -274,6 +376,7 @@ export class Games {
       this.app.lights.overlay({ kind: 'flash', color: '#400000', dur: 0.8 });
       this.g = { ...g, phase: 'playing', buzz: null, wrong: [...(g.wrong || []), pid], endsAt: Date.now() + this.secret.remaining };
       if (g.source === 'alexa') this.app.alexa.command('play').catch(() => { });
+      else if (g.source === 'preview') { this.g.preview = g.preview; this.previewPause(false); }
       else this.app.pauseShow(false);
       this.after(this.secret.remaining, () => this.songReveal(null));
     }
@@ -282,10 +385,11 @@ export class Games {
     const g = this.g;
     if (!g || g.kind !== 'name-that-song' || g.phase === 'reveal' || !this.secret.item) return;
     this.g = { ...g, phase: 'reveal', answer: this.secret.answer, winner: pid, points: pts, item: { title: this.secret.item.title, artist: this.secret.item.artist || '', year: this.secret.item.year || null } };
+    if (g.source === 'preview') this.g.artwork = this.secret.artwork || null;
     if (pid) { this.app.lights.overlay({ kind: 'burst', color: teamOf(this.players.get(pid)?.team).color, dur: 2 }); this.app.sfx('correct'); }
-    if (g.source === 'alexa') this.app.alexa.command('play').catch(() => { }); else this.app.pauseShow(false);
+    if (g.source === 'alexa') this.app.alexa.command('play').catch(() => { }); else if (g.source !== 'preview') this.app.pauseShow(false);
     this.after(9000, () => {
-      if (g.source === 'alexa') this.app.alexa.command('pause').catch(() => { }); else this.app.stopShow();
+      if (g.source === 'alexa') this.app.alexa.command('pause').catch(() => { }); else if (g.source !== 'preview') this.app.stopShow();
       this.next();
     });
   }

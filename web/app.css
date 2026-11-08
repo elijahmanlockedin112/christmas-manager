@@ -229,6 +229,51 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px;
 .sep { height: 1px; background: var(--line); margin: 16px 0; }
 a { color: var(--gold); }
 
+/* ---------- people & photos ---------- */
+.face { display: inline-grid; place-items: center; flex: none; border-radius: 50%; overflow: hidden; background: var(--c); color: #fff; font-family: var(--serif); font-weight: 800; box-shadow: 0 0 0 2px var(--c); }
+.face img { width: 100%; height: 100%; object-fit: cover; }
+.people { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 14px 10px; }
+.person { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.person.off { opacity: .45; }
+.person .snap { position: relative; border-radius: 50%; }
+.person .snap i { position: absolute; right: -2px; bottom: -2px; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--panel); border: 1px solid var(--line2); color: var(--gold); }
+.person .snap i .ic { width: 14px; height: 14px; }
+.person .snap:active { transform: scale(.95); }
+.person .pname { font-weight: 600; font-size: 14px; }
+.person .pteam { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+.person .pteam i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+.person .px { position: absolute; top: -4px; right: 8px; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; background: var(--panel); border: 1px solid var(--line2); color: var(--muted); }
+.person .px .ic { width: 13px; height: 13px; }
+.faces-line span { display: inline-flex; align-items: center; gap: 6px; font-family: var(--sans); }
+.faces-line b { font-family: var(--mono); font-weight: 500; }
+.buzzer { display: flex; align-items: center; justify-content: center; gap: 12px; }
+
+/* hot seat */
+.seat { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding: 18px 8px 8px; }
+.seat-name { font-family: var(--serif); font-size: 30px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; margin-top: 6px; }
+.seat-name.good { color: #3fd17c; } .seat-name.bad { color: #ff8a80; }
+.seat-go { height: 64px; padding: 0 28px; font-size: 19px; margin-top: 14px; border-radius: 16px; }
+.seat-head { display: flex; gap: 14px; align-items: flex-start; }
+.seat-timer { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; margin: 14px 0 4px; }
+.seat-timer i { display: block; height: 100%; background: var(--gold); transform-origin: left; animation: seat-run linear forwards; }
+@keyframes seat-run { from { transform: scaleX(1); } to { transform: scaleX(0); background: #ff5a4e; } }
+.seat-q { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.seat-q .host-q { font-size: 28px; }
+.seat-q .bigans { flex: 1; grid-auto-rows: 1fr; min-height: 260px; }
+.seat-q .bans { min-height: 96px; font-size: 22px; }
+.seat-q .bans b { font-size: 30px; }
+
+/* game mode: no tree, no tabs; the game fills the iPad */
+body.gamemode .app { grid-template-columns: 1fr; grid-template-rows: 1fr; }
+body.gamemode .stage, body.gamemode .tabs { display: none; }
+body.gamemode .panel { padding-bottom: 0; }
+body.gamemode .view { max-width: 980px; margin: 0 auto; padding-top: max(18px, env(safe-area-inset-top)); }
+body.gamemode .view.on { display: flex; flex-direction: column; min-height: 100%; box-sizing: border-box; }
+body.gamemode .view.on > .sec:first-child { flex: 1; display: flex; flex-direction: column; }
+body.gamemode .host { flex: 1; display: flex; flex-direction: column; }
+body.gamemode .host-body { flex: 1; display: flex; flex-direction: column; }
+body.gamemode .host-top h3 { font-size: 24px; }
+
 /* ---------- iPad portrait & phones ---------- */
 @media (max-width: 980px) and (orientation: portrait), (max-width: 760px) {
   .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }

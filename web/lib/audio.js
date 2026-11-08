@@ -5,16 +5,22 @@
 const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
 
 export class Sound {
-  constructor() {
+  // latencyHint: seconds of output buffer. The Pi's TV uses a big one (0.15) so busy graphics can't
+  // starve the audio; playSong schedules that much earlier, so the music stays on the server clock.
+  constructor({ latencyHint = 'playback', lookahead = 0.4 } = {}) {
     this.ctx = null;
     this.player = null;
     this.crackle = null;
+    this.latencyHint = latencyHint;
+    this.lookahead = lookahead;
   }
   get ready() { return !!this.ctx && this.ctx.state === 'running'; }
+  // seconds between scheduling a sound and hearing it
+  get outLatency() { return this.ctx ? (this.ctx.baseLatency || 0) + (this.ctx.outputLatency || 0) : 0; }
   init() {
     if (this.ctx) return this.ctx;
     const C = window.AudioContext || window.webkitAudioContext;
-    const ctx = new C({ latencyHint: 'playback' });
+    const ctx = new C({ latencyHint: this.latencyHint });
     this.ctx = ctx;
     this.master = ctx.createGain(); this.master.gain.value = 0.8;
     const comp = ctx.createDynamicsCompressor();
@@ -130,9 +136,9 @@ export class Sound {
     const out = this.bus(0.9);
     const mood = song.mood || 'bright';
     const p = { song, tl, show, out, ni: 0, ci: 0, beat: Math.floor(-tl.lead / tl.spb) - 1, timer: null, done: false };
-    const lookahead = 0.4;
+    const lookahead = this.lookahead;
     const songSec = () => (net.now() - show.startAt) / 1000 - tl.lead;
-    const toCtx = s => this.ctx.currentTime + (s - songSec()) - latency / 1000;
+    const toCtx = s => this.ctx.currentTime + (s - songSec()) - latency / 1000 - this.outLatency;
     const tick = () => {
       if (p.done) return;
       const now = songSec();
@@ -207,6 +213,8 @@ export class Sound {
     else if (name === 'scan') { const o = c.createOscillator(), g = c.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(400, t); for (let i = 0; i < 12; i++) o.frequency.linearRampToValueAtTime(i % 2 ? 420 : 1300, t + 0.45 * (i + 1)); g.gain.value = 0.05; o.connect(g); g.connect(out); o.start(t); o.stop(t + 5.5); }
     else if (name === 'nice') { arp([72, 76, 79, 84, 88], 0.08, 'bell', 0.9); this.sleigh(out, t + 0.4, 0.6, 5); }
     else if (name === 'chime') arp([84], 0.2, 'bell', 0.6);
+    else if (name === 'tick') this.pluck(out, 96, t, 0.55); // last seconds of a hot-seat timer
+    else if (name === 'tock') this.pluck(out, 91, t, 0.5);
     setTimeout(() => out.disconnect(), 6000);
   }
 

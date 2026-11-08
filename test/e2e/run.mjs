@@ -16,7 +16,7 @@ fs.rmSync(DATA, { recursive: true, force: true });
 const only = (process.env.ONLY || '').split(',').filter(Boolean);
 const want = k => !only.length || only.includes(k);
 
-const srv = spawn(process.execPath, ['server/index.mjs'], { cwd: ROOT, env: { ...process.env, PORT: String(PORT), XM_DATA: DATA, XM_HUE_PORT: '0' }, stdio: ['ignore', 'pipe', 'pipe'] });
+const srv = spawn(process.execPath, ['server/index.mjs'], { cwd: ROOT, env: { ...process.env, PORT: String(PORT), XM_DATA: DATA, XM_HUE_PORT: '0', XM_PREVIEWS: '0' }, stdio: ['ignore', 'pipe', 'pipe'] });
 let srvLog = '';
 srv.stdout.on('data', d => (srvLog += d)); srv.stderr.on('data', d => (srvLog += d));
 for (let i = 0; i < 40; i++) { try { await fetch(`${BASE}/api/state`); break; } catch { await sleep(200); } }
@@ -95,15 +95,50 @@ try {
   let st;
   // ---------- pass-the-iPad play (no phones), all with real taps on the iPad ----------
   await ipad.tap('.tab[data-tab="games"]');
-  for (const [name, team] of [['Grandma', 'red'], ['Dad', 'green'], ['Lily', 'red']]) {
-    await ipad.tap(`[data-nt="${team}"]`);
+  // everyone for themselves is the default: no team picker
+  for (const name of ['Grandma', 'Dad', 'Lily']) {
     await ipad.tap('#newName'); await ipad.type(name);
     await ipad.tap('#addP'); await sleep(300);
   }
   st = await state();
-  check('iPad roster: 3 players added on the iPad', st.players.filter(p => p.local).length === 3 && st.players.find(p => p.name === 'Dad')?.team === 'green', st.players.map(p => p.name + ':' + p.team).join(' '));
+  check('iPad roster: 3 players added on the iPad', st.players.filter(p => p.local).length === 3 && new Set(st.players.map(p => p.color)).size === 3, st.players.map(p => p.name + ':' + p.color).join(' '));
+  // a photo for Dad, made the way the iPad makes one (square JPEG from a canvas)
+  const dadId = st.players.find(p => p.name === 'Dad').id;
+  const jpeg = await ipad.eval(`(() => { const c = document.createElement('canvas'); c.width = c.height = 420; const x = c.getContext('2d'); x.fillStyle = '#2a6'; x.fillRect(0, 0, 420, 420); x.fillStyle = '#fc9'; x.beginPath(); x.arc(210, 190, 110, 0, 7); x.fill(); for (let i = 0; i < 400; i++) { x.fillStyle = 'hsl(' + i + ',60%,50%)'; x.fillRect(Math.random() * 420, Math.random() * 420, 6, 6); } return c.toDataURL('image/jpeg', 0.84); })()`);
+  await act('game.photo', { pid: dadId, photo: jpeg });
+  await sleep(500);
+  const shown = await ipad.eval(`!!document.querySelector('[data-photo="${dadId}"] img')`);
+  const photoRes = await fetch(`${BASE}/api/player-photo/${dadId}?v=1`);
+  check('player photo saved and shown on the iPad', shown && photoRes.status === 200 && (photoRes.headers.get('content-type') || '').includes('jpeg'));
   await ipad.shot(path.join(OUT, 'ipad-roster.png'));
-  // trivia: each person taps an answer in turn
+  // trivia hot seat: one person at a time, on the TV with a hat and a timer
+  await ipad.tap('[data-start="trivia"]'); await sleep(400);
+  check('game mode: the iPad hides the tree and tabs', await ipad.eval(`document.body.classList.contains('gamemode') && getComputedStyle(document.querySelector('.stage')).display === 'none'`));
+  await ipad.tap('#gNext'); await sleep(600);
+  st = await state();
+  check('hot seat: a "you\'re up" turn first, 3 questions each', st.game?.phase === 'turn' && !!st.game.turn?.pid && st.game.total === 9, `${st.game?.phase} ${st.game?.total}`);
+  await sleep(800);
+  check('TV shows whose turn it is, in a Santa hat', await tv.eval(`!!document.querySelector('.upnext .av .hat')`));
+  await tv.shot(path.join(OUT, 'tv-hotseat-turn.png'));
+  await ipad.shot(path.join(OUT, 'ipad-hotseat-turn.png'));
+  await ipad.tap('#seatGo'); await sleep(900);
+  st = await state();
+  check('"I\'m ready" starts the question and the clock', st.game?.phase === 'question' && st.game.endsAt > Date.now() + 10000);
+  check('TV hot seat: face, hat and timer ring', await tv.eval(`!!document.querySelector('.hotseat .av .hat') && !!document.querySelector('#gRing')`));
+  await tv.shot(path.join(OUT, 'tv-hotseat-question.png'));
+  await ipad.shot(path.join(OUT, 'ipad-hotseat-question.png'));
+  const seat = st.game.turn.pid;
+  await act('game.answer', { pid: st.players.find(p => p.id !== seat).id, choice: 0 }); // someone else can't answer
+  await ipad.tap('[data-ans="1"]'); await sleep(2200);
+  st = await state();
+  check('hot seat answer reveals after a beat', st.game?.phase === 'reveal' && st.game.picked === 1 && Object.keys(st.game.gained || {}).every(id => id === seat), JSON.stringify(st.game?.gained));
+  await sleep(600);
+  await tv.shot(path.join(OUT, 'tv-hotseat-reveal.png'));
+  await ipad.tap('#gEnd'); await sleep(500);
+  check('ending the game brings the tree back', await ipad.eval(`!document.body.classList.contains('gamemode')`));
+  await ipad.tap('.tab[data-tab="games"]'); await sleep(200);
+  // team play still works: 2 teams, pass the iPad for one shared question
+  await ipad.tap('[data-teams="2"]'); await sleep(400);
   await ipad.tap('[data-start="trivia"]'); await sleep(300);
   await ipad.tap('#gNext'); await sleep(500);
   await ipad.shot(path.join(OUT, 'ipad-trivia-turn.png'));
@@ -207,7 +242,7 @@ try {
   check('phone BUZZ button buzzes in', st.game?.phase === 'buzzed' && st.game.buzz.name === 'Aunt Jo');
   await tv.shot(path.join(OUT, 'tv-nts-buzzed.png'));
   await play.shot(path.join(OUT, 'play-pick.png'));
-  await act('game.end');
+  await act('game.end'); await sleep(500); // the iPad leaves game mode (tree and tabs come back)
 
   // ---------- pictionary: strokes from the iPad pad reach the TV ----------
   await ipad.tap('.tab[data-tab="games"]');

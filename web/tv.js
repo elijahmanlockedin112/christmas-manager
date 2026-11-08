@@ -4,9 +4,15 @@ import { TreeView, halo } from '/web/lib/tree.js';
 import { Sound, Listener } from '/web/lib/audio.js';
 import { icon } from '/web/lib/icons.js';
 import { buildTimeline } from '/shared/song.mjs';
+import { syncPreview } from '/web/lib/preview-player.js';
 
 let S = null;
-const sound = new Sound();
+// The Pi's own screen (?kiosk=1): the carols are synthesized on the same 4 small cores that draw the
+// scenes, so draw fewer/smaller frames and give the audio a bigger buffer. (Measured on the Pi 4:
+// 101 dropouts/min during a carol on the show scene before, 0 with a still scene.)
+const LITE = new URLSearchParams(location.search).has('kiosk');
+const TREE_OPTS = LITE ? { maxFps: 24, scale: 0.6 } : {};
+const sound = new Sound(LITE ? { latencyHint: 0.15, lookahead: 0.8 } : {});
 const stage = $('#stage');
 let wantFrames = false;
 const treeViews = new Set();
@@ -135,7 +141,7 @@ scene('home', {
       <div class="treebox"><canvas></canvas></div>
       `;
     this.bg = this.el.querySelector('canvas.homebg');
-    this.tree = new TreeView(this.el.querySelector('.treebox canvas'), { floor: true });
+    this.tree = new TreeView(this.el.querySelector('.treebox canvas'), { floor: true, ...TREE_OPTS });
     this.bokeh = Array.from({ length: 22 }, (_, i) => ({ x: Math.random(), y: 0.25 + Math.random() * 0.75, r: 0.04 + Math.random() * 0.08, c: ['255,170,70', '232,60,50', '60,190,110', '255,215,140'][i % 4], a: 0.05 + Math.random() * 0.07, v: (Math.random() - 0.5) * 0.004, ph: Math.random() * 6 }));
     this.factAt = -100; this.factI = 0;
   },
@@ -370,7 +376,7 @@ scene('advent', {
 // TREE MIRROR
 scene('tree', {
   frames: true,
-  init() { this.el.classList.add('treemirror'); this.el.innerHTML = '<div class="box"><canvas></canvas></div>'; this.tree = new TreeView(this.el.querySelector('canvas')); },
+  init() { this.el.classList.add('treemirror'); this.el.innerHTML = '<div class="box"><canvas></canvas></div>'; this.tree = new TreeView(this.el.querySelector('canvas'), TREE_OPTS); },
   enter() { treeViews.add(this.tree); loadLayout(this.tree); }, leave() { treeViews.delete(this.tree); },
 });
 
@@ -381,9 +387,9 @@ scene('show', {
   init() {
     this.el.innerHTML = `<div class="songtitle"><span><b id="shTitle"></b></span><span id="shBy"></span></div><div id="shMain"></div><canvas class="roll"></canvas><div class="showtree"><canvas></canvas></div>`;
     this.roll = this.el.querySelector('canvas.roll'); this.tl = null; this.key = '';
-    this.tree = new TreeView(this.el.querySelector('.showtree canvas'), { floor: false });
+    this.tree = new TreeView(this.el.querySelector('.showtree canvas'), { floor: false, ...TREE_OPTS });
   },
-  enter() { const r = this.roll.getBoundingClientRect(); this.roll.width = Math.round(r.width * 0.75); this.roll.height = Math.round(r.height * 0.75); treeViews.add(this.tree); loadLayout(this.tree); },
+  enter() { const r = this.roll.getBoundingClientRect(); const k = LITE ? 0.5 : 0.75; this.roll.width = Math.round(r.width * k); this.roll.height = Math.round(r.height * k); treeViews.add(this.tree); loadLayout(this.tree); },
   leave() { treeViews.delete(this.tree); },
   update() {
     const s = S.show;
@@ -553,21 +559,63 @@ const pict = {
     for (let i = 1; i < s.p.length; i++) { const a = s.p[i - 1], b = s.p[i]; x.lineWidth = Math.max(1.5, s.w * W * (0.5 + (b[2] || 0.5))); x.beginPath(); x.moveTo(a[0] * W, a[1] * H); x.lineTo(b[0] * W, b[1] * H); x.stroke(); }
   },
 };
+// ---------- people: photo (or initial) in their colour, optionally wearing a Santa hat ----------
+const HAT = `<svg class="hat" viewBox="0 0 120 100" aria-hidden="true"><path d="M14 72 C 20 38, 48 10, 84 12 C 99 13, 109 27, 107 44 L 97 45 C 95 36, 89 31, 80 33 C 89 45, 96 57, 102 72 Z" fill="#c8202a"/><path d="M28 64 C 36 40, 56 22, 80 20" stroke="#8f121b" stroke-width="5" stroke-linecap="round" fill="none" opacity=".45"/><rect x="4" y="64" width="110" height="24" rx="12" fill="#f7f1e6"/><rect x="10" y="68" width="98" height="5" rx="2.5" fill="#fff" opacity=".7"/><circle cx="104" cy="48" r="11" fill="#f7f1e6"/></svg>`;
+const STAR = `<svg class="star" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.8l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.7-6.2 3.7 1.6-7L2 9l7.1-.6z" fill="#e8b23f" stroke="#fff3c9" stroke-width=".8"/></svg>`;
+const person = id => S.players.find(p => p.id === id) || null;
+function avatar(p, { hat = false, cls = '', ring = false } = {}) {
+  if (!p) return '';
+  const face = p.photo ? `<img src="/api/player-photo/${encodeURIComponent(p.id)}?v=${p.photo}" alt="">` : `<span>${esc((p.name || '?')[0].toUpperCase())}</span>`;
+  return `<div class="av ${cls}" style="--c:${p.color || 'var(--gold)'}">${ring ? '<svg class="ring" viewBox="0 0 100 100"><circle cx="50" cy="50" r="47" class="track"/><circle cx="50" cy="50" r="47" class="left" id="gRing" pathLength="100"/></svg>' : ''}<div class="face">${face}</div>${hat ? HAT : ''}</div>`;
+}
+// solo scoreboard: little faces with scores
+const playersLine = () => `<div class="faces">${[...S.players].sort((a, b) => b.score - a.score).map(p => `<span>${avatar(p, { cls: 'xs' })}<b>${fmt(p.score || 0)}</b></span>`).join('')}</div>`;
+
 scene('game', {
   init() { this.key = ''; },
   update() {
     const g = S.game;
     if (!g) return;
-    const key = JSON.stringify([g.kind, g.phase, g.round, g.q, g.a, g.buzz, g.answer, g.word, g.result, g.winner, S.players.length, S.teams.length, g.kind === 'pictionary' ? 0 : g.answered?.length, g.votesIn, g.guesses?.length, g.correct?.length]);
+    const key = JSON.stringify([g.kind, g.phase, g.round, g.q, g.a, g.buzz, g.answer, g.word, g.result, g.winner, S.players.map(p => p.id + p.photo + p.score), S.teams.length, g.kind === 'pictionary' ? 0 : g.answered?.length, g.votesIn, g.guesses?.length, g.correct?.length, g.turn?.pid, g.picked]);
     if (key === this.key) return;
     const prevPhase = this.phase;
     this.key = key; this.phase = g.phase;
     const names = { trivia: 'Trivia Showdown', 'name-that-song': 'Name That Song', 'would-you-rather': 'Would You Rather', pictionary: 'Pictionary' };
     const top = `<div class="g-top"><b>${names[g.kind]}</b><span>${g.phase === 'lobby' || g.phase === 'final' ? '' : `Round ${g.round} of ${g.total}`}</span></div>`;
     const scores = g.teamScores || (() => { const s = {}; for (const p of S.players) s[p.team] = (s[p.team] || 0) + (p.score || 0); return s; })();
-    const teamsLine = `<div class="teams">${S.teams.map(t => `<span style="color:${t.color}">${t.name} ${fmt(scores[t.id] || 0)}</span>`).join('')}</div>`;
+    const teamsLine = g.solo ? playersLine() : `<div class="teams">${S.teams.map(t => `<span style="color:${t.color}">${t.name} ${fmt(scores[t.id] || 0)}</span>`).join('')}</div>`;
     const timer = endsAt => `<div class="timer"><i id="gTimer" data-ends="${endsAt}" data-dur="${endsAt - Date.now()}"></i></div>`;
     const el = this.el;
+    this.ticked = prevPhase === g.phase ? this.ticked : 99;
+    if (g.solo && g.phase === 'lobby') {
+      el.innerHTML = top + `<div class="final"><h1>Get ready</h1><div class="muted" style="font-size:3vh">Everyone for themselves. Pass the iPad around.</div><div class="lineup">${S.players.map((p, i) => `<div style="animation-delay:${i * 120}ms">${avatar(p, { hat: true, cls: 'md' })}<b>${esc(p.name)}</b></div>`).join('')}</div></div>`;
+      return;
+    }
+    if (g.solo && g.phase === 'final') {
+      const board = g.board || [];
+      const champs = new Set(g.champs || []);
+      const podium = [board[1], board[0], board[2]].filter(Boolean);
+      el.innerHTML = top + `<div class="final"><h1>${champs.size ? [...champs].map(id => esc(board.find(p => p.id === id)?.name || '')).join(' & ') + (champs.size > 1 ? ' tie!' : ' wins!') : 'Final scores'}</h1><div class="podium">${podium.map(p => `<div class="${p === board[0] ? 'first' : ''}">${champs.has(p.id) ? STAR : ''}${avatar(person(p.id) || p, { hat: true, cls: p === board[0] ? 'lg' : 'md' })}<b>${esc(p.name)}</b><span class="num">${fmt(p.score)}</span></div>`).join('')}</div>${board.length > 3 ? `<div class="rest">${board.slice(3).map((p, i) => `<span>${i + 4}. ${esc(p.name)} <b class="num">${fmt(p.score)}</b></span>`).join('')}</div>` : ''}</div>`;
+      if (prevPhase !== 'final') confetti([board[0]?.color || '#e8b23f', '#f6eedc', '#e8b23f']);
+      return;
+    }
+    if (g.kind === 'trivia' && g.hotSeat && g.turn) {
+      const p = person(g.turn.pid) || g.turn;
+      const L = ['A', 'B', 'C', 'D'], LC = ['#d6312b', '#1f9a52', '#d69a1e', '#3a7be0'];
+      if (g.phase === 'turn') {
+        el.innerHTML = top + `<div class="upnext"><div class="pop">${avatar(p, { hat: true, cls: 'xl' })}</div><div><div class="muted" style="font-size:3vh">Question ${g.round} of ${g.total}</div><h1>${esc(p.name)}, you're up!</h1><div style="font-size:3.4vh">Grab the iPad and tap <b>I'm ready</b>.</div>${g.turn.streak >= 2 ? `<div class="streak">${g.turn.streak} in a row. Keep it going!</div>` : ''}</div></div><div class="g-foot"><span></span>${teamsLine}</div>`;
+        return;
+      }
+      const rev = g.phase === 'reveal';
+      const right = rev && g.gained?.[p.id], timedOut = rev && g.turn.timedOut;
+      const mood = !rev ? '' : right ? 'yay' : 'droop';
+      const verdict = !rev ? (g.picked !== null && g.picked !== undefined && g.picked >= 0 ? '<div class="verdict">Locked in…</div>' : `<div class="secs num" id="gSecs"></div>`)
+        : right ? `<div class="verdict good">+${fmt(g.gained[p.id])}</div>${g.turn.streak >= 3 ? `<div class="streak">${g.turn.streak} in a row!</div>` : ''}` : `<div class="verdict bad">${timedOut ? "Time's up!" : 'So close!'}</div>`;
+      el.innerHTML = top + `<div class="hotseat"><div class="who ${mood}">${avatar(p, { hat: true, cls: 'xl', ring: !rev })}<b style="color:${p.color}">${esc(p.name)}</b>${verdict}</div><div class="qa"><div class="muted" style="font-size:2.4vh;margin-bottom:1.4vh">${esc(g.category || '')}</div><div class="g-q">${esc(g.q || '')}</div>${rev && g.fact ? `<div class="fact">${esc(g.fact)}</div>` : ''}<div class="g-choices">${(g.choices || []).map((c, i) => `<div class="g-choice${rev ? (i === g.answer ? ' right' : i === g.picked ? ' wrong' : ' dim') : i === g.picked ? ' picked' : ''}"><i style="background:${LC[i]}">${L[i]}</i>${esc(c)}</div>`).join('')}</div></div></div><div class="g-foot"><span></span>${teamsLine}</div>`;
+      if (!rev) { const r = $('#gRing'); if (r) { r.dataset.ends = g.endsAt; r.dataset.dur = g.endsAt - g.startsAt; } }
+      if (rev && right && prevPhase !== 'reveal') confetti([p.color, '#f6eedc', '#e8b23f'], 90);
+      return;
+    }
     if (g.phase === 'lobby') {
       const rosterHtml = `<div class="roster">${S.teams.map(t => `<div class="tm"><b style="color:${t.color}">${t.name}</b>${S.players.filter(p => p.team === t.id).map(p => `<span class="pill" style="background:${t.color}">${esc(p.name)}</span>`).join('')}</div>`).join('')}</div>`;
       el.innerHTML = S.settings.phones
@@ -609,6 +657,16 @@ scene('game', {
     }
   },
   frame() {
+    const ring = $('#gRing');
+    if (ring && ring.dataset.ends) {
+      // hot seat: the ring around their face runs down, turns red and ticks for the last 5 seconds
+      const left = (+ring.dataset.ends - net.now()) / 1000, frac = Math.max(0, Math.min(1, left * 1000 / (+ring.dataset.dur || 1)));
+      ring.style.strokeDashoffset = String(100 - frac * 100);
+      ring.classList.toggle('hurry', left < 5.5);
+      const s = $('#gSecs'); if (s) s.textContent = Math.max(0, Math.ceil(left));
+      const whole = Math.ceil(left);
+      if (s && whole <= 5 && whole > 0 && whole < this.ticked) { this.ticked = whole; sound.sfx(whole % 2 ? 'tick' : 'tock'); }
+    }
     const t = $('#gTimer'); if (!t) return;
     const ends = +t.dataset.ends, dur = +t.dataset.dur || 1;
     t.style.transform = `scaleX(${Math.max(0, Math.min(1, (ends - net.now()) / dur))})`;
@@ -669,12 +727,13 @@ function update() {
   show(id);
   scenes[id].update?.();
   syncShow(); syncRadio();
+  syncPreview(S.game, net.now); // real song clips for Name That Song
 }
 let last = performance.now(), t0 = last;
 const perf = { n: 0, t: last };
 function loop(now) {
   requestAnimationFrame(loop);
-  if (now - last < 30) return; // ~30 fps is plenty for a TV and halves the work on the Pi
+  if (now - last < (LITE ? 38 : 30)) return; // ~30 fps is plenty for a TV (~25 on the Pi, leaving room for the audio)
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
   // report real smoothness to the server every 5 s (shown on the iPad's TV tab)
   perf.n++;

@@ -41,7 +41,7 @@ const DEFAULT_CONFIG = {
   lights: { power: true, effect: 'classic', color: '#ff3b2f', brightness: 0.8, speed: 1 },
   settings: {
     family: 'The Family', teams: 2, home: { name: 'Atlanta', lat: 33.75, lon: -84.39, utc: -5 },
-    lightDelayMs: 0, showAudio: 'tv', alexaJokes: true, joinUrl: '', goodnightMinutes: 20, phones: false, remoteUrl: '', physicalTree: true,
+    lightDelayMs: 0, showAudio: 'tv', alexaJokes: true, joinUrl: '', goodnightMinutes: 20, phones: false, remoteUrl: '', physicalTree: true, solo: true,
   },
   schedule: { enabled: false, on: '17:00', off: '23:30' },
   alexa: { enabled: true, device: null, proxyIp: '', proxyPort: 47927 },
@@ -83,6 +83,7 @@ const content = {
   cities: [...readJson('content/santa-east.json', []), ...readJson('content/santa-west.json', [])].map(c => ({ ...c, lon: c.lon > 180 ? c.lon - 360 : c.lon })),
 };
 const photos = new Map(); // Nice List photos, memory only
+let clientLogN = 0, clientLogT = 0; // /api/clientlog: at most 60 lines a minute
 const songs = new Map();
 for (const f of fs.readdirSync(path.join(ROOT, 'shared', 'carols')).filter(f => f.endsWith('.json'))) {
   try { const s = JSON.parse(fs.readFileSync(path.join(ROOT, 'shared', 'carols', f), 'utf8')); if (!s.hidden) songs.set(s.id, { song: s, tl: buildTimeline(s) }); } catch (e) { log('carol', f, e.message); }
@@ -478,7 +479,8 @@ async function scene(name) {
   if (name === 'showtime') {
     cec('on 0').then(() => cec('as'));
     app.lights.overlay({ kind: 'dim', value: 0.05, dur: 3 });
-    setTimeout(() => playShow(null, { playlist: true, delay: 2000 }), 2500);
+    // real songs only (the default): Christmas radio instead of the synthesized carol shows
+    setTimeout(() => (config.settings.realSongsOnly === false ? playShow(null, { playlist: true, delay: 2000 }) : actions['radio.play']({})), 2500);
     return { ok: true, say: 'Showtime! Dim the lights.' };
   }
   if (name === 'party') {
@@ -641,6 +643,9 @@ const actions = {
   'game.pick'(a) { if (Number.isInteger(a.choice)) app.games.songJudge(String(a.pid), a.choice); return { ok: true }; },
   'game.award'(a) { app.games.award(String(a.pid)); return { ok: true }; },
   'game.drawReady'() { app.games.drawReady(); return { ok: true }; },
+  'game.turnReady'(a) { app.games.turnReady(a.round); return { ok: true }; },
+  'game.photo'(a) { return { ok: true, photo: app.games.setPhoto(String(a.pid), a.photo) }; },
+  'game.solo'(a) { config.settings.solo = !!a.on; saveConfig(); app.changed(); return { ok: true }; },
   'game.teams'(a) { config.settings.teams = Math.max(2, Math.min(4, a.teams | 0)); saveConfig(); app.changed(); return { ok: true }; },
   'game.setTeam'(a) { const p = app.games.players.get(a.id); if (p && TEAMS.some(t => t.id === a.team)) { p.team = a.team; app.games.syncPlayers(); } return { ok: true }; },
 
@@ -802,6 +807,21 @@ const server = http.createServer(async (req, res) => {
     }
     if (p === '/api/qr.svg') { res.writeHead(200, { 'content-type': 'image/svg+xml', 'cache-control': 'no-cache' }); return res.end(qrSvg(url.searchParams.get('d') || joinUrl())); }
     if (p === '/api/songs') return sendJson(res, { songs: app.songList() });
+    if (p.startsWith('/api/player-photo/')) {
+      const f = path.join(DATA, 'players', `${p.slice(18).replace(/[^\w-]/g, '')}.jpg`);
+      if (!fs.existsSync(f)) { res.writeHead(404); return res.end(); }
+      res.writeHead(200, { 'content-type': 'image/jpeg', 'cache-control': 'max-age=31536000' }); // URLs carry ?v=<version>
+      return res.end(fs.readFileSync(f));
+    }
+    // the iPad reports its own errors and taps here, so device-only bugs show up in the Pi's log
+    if (p === '/api/clientlog' && req.method === 'POST') {
+      const b = (await readBody(req)).toString('utf8').slice(0, 1500);
+      const ua = String(req.headers['user-agent'] || '');
+      const dev = /iPad/.test(ua) || (/Macintosh/.test(ua) && /Mobile|Safari/.test(ua) && !/Chrome/.test(ua)) ? 'ipad' : /iPhone/.test(ua) ? 'iphone' : /CrOS|Linux arm|aarch64/.test(ua) ? 'pi' : 'browser';
+      clientLogN = Date.now() - clientLogT > 60000 ? 0 : clientLogN; if (!clientLogN) clientLogT = Date.now();
+      if (++clientLogN <= 60) log(`[${dev}]`, b.replace(/\s+/g, ' '));
+      res.writeHead(204); return res.end();
+    }
     if (p.startsWith('/api/photo/')) { const b = photos.get(p.slice(11)); if (!b) { res.writeHead(404); return res.end(); } res.writeHead(200, { 'content-type': 'image/jpeg', 'cache-control': 'no-store' }); return res.end(b); }
     if (p === '/api/layout') return sendJson(res, { layout: app.lights.layout.map(q => ({ x: +q.x.toFixed(4), y: +q.y.toFixed(4), z: +q.z.toFixed(3), a: +q.a.toFixed(4), u: +q.u.toFixed(4) })) });
     if (p.startsWith('/api/song/')) { const e = songs.get(p.slice(10)); return e ? sendJson(res, { song: e.song }) : sendJson(res, { error: 'not found' }, 404); }

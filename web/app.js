@@ -31,9 +31,16 @@ const toastEl = $('#toast');
 let toastT = 0;
 function toast(msg, err = false) { toastEl.textContent = msg; toastEl.className = `toast show${err ? ' err' : ''}`; clearTimeout(toastT); toastT = setTimeout(() => (toastEl.className = 'toast'), 2600); }
 async function act(name, args, okMsg) {
-  try { const r = await net.act(name, args); if (okMsg) toast(typeof okMsg === 'function' ? okMsg(r) : okMsg); return r; }
-  catch (e) { toast(e.message, true); throw e; }
+  try { const r = await net.act(name, args); if (okMsg) toast(typeof okMsg === 'function' ? okMsg(r) : okMsg); diag(`act ${name} ok`); return r; }
+  catch (e) { toast(e.message, true); diag(`act ${name} FAILED: ${e.message}`); throw e; }
 }
+// Device-only bugs: report errors, failed actions and which fields get focus to the Pi's log
+// (journalctl -u christmas-manager | grep ipad). Nothing personal: field ids and lengths only.
+function diag(msg) { try { navigator.sendBeacon('/api/clientlog', `${ui.tab} | ${msg}`.slice(0, 600)); } catch { } }
+addEventListener('error', e => diag(`error ${e.message} @${(e.filename || '').split('/').pop()}:${e.lineno}`));
+addEventListener('unhandledrejection', e => diag(`rejection ${e.reason?.message || e.reason}`));
+document.addEventListener('focusin', e => { const t = e.target; if (t.matches?.('input,textarea,select')) diag(`focus #${t.id || t.type}`); });
+document.addEventListener('focusout', e => { const t = e.target; if (t.matches?.('input,textarea')) diag(`blur #${t.id || t.type} len=${(t.value || '').length} still-in-page=${document.contains(t)}`); });
 
 // ---------------- tabs ----------------
 const TABS = [['lights', 'Lights', 'tree'], ['music', 'Music', 'music'], ['games', 'Games', 'games'], ['fun', 'Fun', 'gift'], ['tv', 'TV', 'tv'], ['setup', 'Setup', 'gear']];
@@ -139,7 +146,7 @@ function buildLights() {
     <div class="sec">
       <div class="sec-head"><h2>Scenes</h2><span class="aside">One tap sets the whole room</span></div>
       <div class="scenes">
-        <button class="scene hot" data-scene="showtime">${icon('star')}<div><b>Showtime</b><span>TV on, lights down, carols with a light show</span></div></button>
+        <button class="scene hot" data-scene="showtime">${icon('star')}<div><b>Showtime</b><span>TV on, lights down, Christmas music</span></div></button>
         <button class="scene" data-scene="party">${icon('sparkle')}<div><b>Party</b><span>Christmas rock radio, tree dances to it</span></div></button>
         <button class="scene" data-scene="cozy">${icon('fire')}<div><b>Cozy</b><span>Yule log on the TV, fireplace glow, lounge music</span></div></button>
         <button class="scene" data-scene="goodnight">${icon('moon')}<div><b>Goodnight</b><span>Soft glow, Alexa says goodnight, off later</span></div></button>
@@ -201,8 +208,9 @@ requestAnimationFrame(animateMinis);
 // ---------------- MUSIC ----------------
 function buildMusic() {
   const v = $('[data-view=music]');
+  // the synthesized carols are hidden while realSongsOnly is on (the default): real recordings only
   v.innerHTML = `
-    <div class="sec">
+    <div class="sec" id="carolSec" style="${S?.settings?.realSongsOnly === false ? '' : 'display:none'}">
       <div class="sec-head"><h2>Light shows</h2><button class="btn sm" id="playAll">${icon('play')}Play them all</button></div>
       <p class="hint">Carols play on the TV while every note lights the tree: low notes at the bottom, high notes at the top, chords change the colour.</p>
       <div id="showNow"></div>
@@ -231,6 +239,7 @@ function buildMusic() {
 }
 function renderMusic() {
   if (!S) return;
+  $('#carolSec').style.display = S.settings.realSongsOnly === false ? '' : 'none';
   const show = S.show;
   $('#showNow').innerHTML = show.playing ? `<div class="nowbar"><div class="art">${icon('music')}</div><div class="grow"><div class="t">${esc(show.title)}</div><div class="s">${esc(show.by || '')}${show.playlist ? ' · playing all' : ''}</div></div><button class="btn sm" id="stopShow">${icon('stop')}Stop</button></div>` : '';
   if (show.playing) $('#stopShow').onclick = () => act('show.stop');
@@ -325,8 +334,8 @@ async function toggleListen() {
 // ---------------- GAMES ----------------
 // Everyone plays on this iPad (pass it around). Phones are optional (Setup switch in the Players box).
 const GAMES = [
-  ['trivia', 'Trivia Showdown', 'Question on the TV. Pass the iPad: each person taps their answer in secret.', 'star'],
-  ['name-that-song', 'Name That Song', 'Alexa plays a real Christmas hit. Slap your name on the iPad to buzz in.', 'music'],
+  ['trivia', 'Trivia Showdown', 'One person in the hot seat at a time: your face on the TV in a Santa hat, with the clock running.', 'star'],
+  ['name-that-song', 'Name That Song', 'A real Christmas hit plays. Slap your name on the iPad to buzz in.', 'music'],
   ['would-you-rather', 'Would You Rather', 'Everyone picks A or B. The tree splits red and green to show the room.', 'shuffle'],
   ['pictionary', 'Pictionary', 'Take turns drawing on the iPad with the Pencil. Everyone guesses out loud.', 'pencil'],
 ];
@@ -338,15 +347,24 @@ ui.votes = {};
 ui.voteRound = '';
 function buildGames() { renderGames(true); }
 const teamOf = id => S.teams.find(t => t.id === id) || { color: '#888', name: '' };
+const solo = () => S.settings.solo !== false;
+// a person's face: their photo, or their initial in their colour
+function face(p, size = 34) {
+  if (!p) return '';
+  return `<span class="face" style="--c:${p.color || '#888'};width:${size}px;height:${size}px;font-size:${Math.round(size * 0.48)}px">${p.photo ? `<img src="/api/player-photo/${encodeURIComponent(p.id)}?v=${p.photo}" alt="">` : esc((p.name || '?')[0].toUpperCase())}</span>`;
+}
+const personOf = id => S.players.find(p => p.id === id);
 function rosterHtml() {
   const team = teamOf;
   // a real form: the iPad keyboard's Done/Go key submits it, and the Add button still works when iOS
   // closes the keyboard and shifts the page mid-tap
-  const add = `<form class="addp" id="addForm" autocomplete="off"><input type="text" id="newName" placeholder="Add a player" maxlength="16" autocomplete="off" autocapitalize="words" enterkeyhint="done"><div class="addteams">${S.teams.map(t => `<button type="button" class="chip${(ui.newTeam || S.teams[0].id) === t.id ? ' on' : ''}" data-nt="${t.id}" title="${esc(t.name)}" style="background:${t.color};width:34px;height:34px"></button>`).join('')}</div><button type="submit" class="btn light" id="addP">Add</button></form>`;
+  const add = `<form class="addp" id="addForm" autocomplete="off"><input type="text" id="newName" placeholder="Add a player" maxlength="16" autocomplete="off" autocapitalize="words" enterkeyhint="done">${solo() ? '' : `<div class="addteams">${S.teams.map(t => `<button type="button" class="chip${(ui.newTeam || S.teams[0].id) === t.id ? ' on' : ''}" data-nt="${t.id}" title="${esc(t.name)}" style="background:${t.color};width:34px;height:34px"></button>`).join('')}</div>`}<button type="submit" class="btn light" id="addP">Add</button></form>`;
   const list = S.players.length
-    ? `<div class="players mt">${S.players.map(p => `<span class="player${p.online ? '' : ' off'}"><button class="pteam" data-pid="${p.id}" title="Switch team"><i style="background:${team(p.team).color}"></i>${esc(p.name)}</button><span class="num muted">${p.score || ''}</span>${p.local ? `<button class="px" data-del="${p.id}" aria-label="Remove ${esc(p.name)}">${icon('x')}</button>` : '<span class="tag">phone</span>'}</span>`).join('')}</div><p class="hint mt">Tap a name to switch teams.</p>`
+    ? `<div class="people mt">${S.players.map(p => `<div class="person${p.online ? '' : ' off'}">${p.local ? `<button class="snap" data-photo="${p.id}" aria-label="Take ${esc(p.name)}'s photo">${face(p, 64)}<i>${icon('scan')}</i></button>` : face(p, 64)}<div class="pname">${solo() ? esc(p.name) : `<button class="pteam" data-pid="${p.id}" title="Switch team"><i style="background:${team(p.team).color}"></i>${esc(p.name)}</button>`}</div>${p.local ? `<button class="px" data-del="${p.id}" aria-label="Remove ${esc(p.name)}">${icon('x')}</button>` : '<span class="tag">phone</span>'}</div>`).join('')}</div>
+      <input type="file" id="photoIn" accept="image/*" capture="user" hidden>
+      <p class="hint mt">${S.players.some(p => p.local && !p.photo) ? 'Tap a face to take their photo. It shows up on the TV, Santa hat included.' : solo() ? 'Tap a face to retake a photo.' : 'Tap a face for a photo, a name to switch teams.'}</p>`
     : '<p class="hint mt">Add everyone who is playing. They are remembered for next time.</p>';
-  const teams = `<div class="btns mt">${[2, 3, 4].map(n => `<button class="btn sm${S.teams.length === n ? ' light' : ''}" data-teams="${n}">${n} teams</button>`).join('')}</div>`;
+  const teams = `<div class="btns mt"><button class="btn sm${solo() ? ' light' : ''}" data-solo="1">Everyone for themselves</button>${[2, 3, 4].map(n => `<button class="btn sm${!solo() && S.teams.length === n ? ' light' : ''}" data-teams="${n}">${n} teams</button>`).join('')}</div>`;
   const phones = `<label class="inline mt" style="gap:10px"><button class="switch${S.settings.phones ? ' on' : ''}" id="phonesSw"></button><span class="muted">Let people with phones play on their own phone too</span></label>${S.settings.phones ? `<div class="join mt"><img alt="Join code" src="/api/qr.svg?d=${encodeURIComponent(S.joinUrl)}"><div><div class="muted" style="font-size:13px">Phones on the home Wi-Fi join at</div><div class="url">${esc(S.joinUrl)}</div></div></div>` : ''}`;
   return add + list + teams + phones;
 }
@@ -356,7 +374,24 @@ function bindRoster(v) {
   // iOS: fire on touch-end too, in case the keyboard closing moves the button before the click lands
   $('#addP').addEventListener('touchend', e => { e.preventDefault(); addNow(); }, { passive: false });
   v.querySelectorAll('[data-nt]').forEach(b => (b.onclick = () => { ui.newTeam = b.dataset.nt; v.querySelectorAll('[data-nt]').forEach(x => x.classList.toggle('on', x === b)); }));
-  v.querySelectorAll('[data-teams]').forEach(b => (b.onclick = () => act('game.teams', { teams: +b.dataset.teams })));
+  v.querySelectorAll('[data-teams]').forEach(b => (b.onclick = () => act('game.solo', { on: false }).then(() => act('game.teams', { teams: +b.dataset.teams }))));
+  v.querySelectorAll('[data-solo]').forEach(b => (b.onclick = () => act('game.solo', { on: true })));
+  // photos: the iPad's front camera opens straight away; we crop a square and shrink it before sending
+  const photoIn = $('#photoIn');
+  v.querySelectorAll('[data-photo]').forEach(b => (b.onclick = () => { ui.photoFor = b.dataset.photo; photoIn.value = ''; photoIn.click(); }));
+  if (photoIn) photoIn.onchange = async () => {
+    const f = photoIn.files?.[0], pid = ui.photoFor;
+    if (!f || !pid) return;
+    try {
+      const img = await new Promise((ok, bad) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => bad(new Error('Could not read that photo')); i.src = URL.createObjectURL(f); });
+      const side = Math.min(img.naturalWidth, img.naturalHeight), c = document.createElement('canvas');
+      c.width = c.height = 420;
+      // faces sit a little above the middle in a selfie
+      c.getContext('2d').drawImage(img, (img.naturalWidth - side) / 2, Math.max(0, (img.naturalHeight - side) * 0.4), side, side, 0, 0, 420, 420);
+      URL.revokeObjectURL(img.src);
+      await act('game.photo', { pid, photo: c.toDataURL('image/jpeg', 0.84) }, `Looking good, ${personOf(pid)?.name || ''}!`);
+    } catch (e) { toast(e.message || 'That photo did not work', true); }
+  };
   v.querySelectorAll('[data-pid]').forEach(b => (b.onclick = () => { const p = S.players.find(x => x.id === b.dataset.pid); if (!p) return; const ids = S.teams.map(t => t.id); act('game.setTeam', { id: p.id, team: ids[(ids.indexOf(p.team) + 1) % ids.length] }); }));
   v.querySelectorAll('[data-del]').forEach(b => (b.onclick = () => act('game.kick', { id: b.dataset.del })));
   $('#phonesSw').onclick = () => act('settings.set', { phones: !S.settings.phones });
@@ -373,19 +408,20 @@ function renderGames(force) {
   if (!g) {
     v.innerHTML = `
       <div class="sec"><div class="sec-head"><h2>Game night</h2><span class="aside">Board on the TV, play on this iPad</span></div>
-        <div class="rows game-list">${GAMES.map(([id, name, blurb, ic]) => `<div class="row big"><div class="lead">${icon(ic)}</div><div class="grow"><div class="t">${name}</div><div class="s" style="white-space:normal">${blurb}${id === 'name-that-song' && !S.alexa?.ready ? ' Without Alexa it plays the carols on the TV.' : ''}</div></div><button class="btn primary" data-start="${id}"${S.players.length ? '' : ' disabled'}>Start</button></div>`).join('')}
+        <div class="rows game-list">${GAMES.map(([id, name, blurb, ic]) => `<div class="row big"><div class="lead">${icon(ic)}</div><div class="grow"><div class="t">${name}</div><div class="s" style="white-space:normal">${blurb}${id === 'name-that-song' ? (S.alexa?.ready ? ' Plays on the Echo.' : ' Plays real song clips on the TV.') : ''}</div></div><button class="btn primary" data-start="${id}"${S.players.length ? '' : ' disabled'}>Start</button></div>`).join('')}
         <div class="row big"><div class="lead">${icon('people')}</div><div class="grow"><div class="t">Charades</div><div class="s" style="white-space:normal">Hold the iPad (or a phone) on your forehead while the family acts it out.</div></div><a class="btn" href="/charades" target="_blank">Open</a></div></div>
       </div>
       <div class="sec"><div class="sec-head"><h2>Players</h2><span class="aside">${S.players.length} playing</span></div>${rosterHtml()}</div>`;
     bindRoster(v);
   } else {
+    // game mode: the whole iPad is the game (no tree, no tabs); the roster only shows before it starts
     v.innerHTML = `<div class="sec"><div class="host"><div class="host-top"><div><div class="host-meta">${GAME_NAMES[g.kind]} · ${g.phase === 'lobby' ? 'ready to start' : g.phase === 'final' ? 'final scores' : `round ${g.round} of ${g.total}`}</div><h3 id="hostTitle"></h3></div><div class="btns" id="hostBtns"></div></div><div class="host-body" id="hostBody"></div></div></div>
-      <div class="sec"><div class="sec-head"><h2>Players</h2><span class="aside">${S.players.length} playing</span></div>${rosterHtml()}</div>`;
-    bindRoster(v);
+      ${g.phase === 'lobby' || g.phase === 'final' ? `<div class="sec"><div class="sec-head"><h2>Players</h2><span class="aside">${S.players.length} playing</span></div>${rosterHtml()}</div>` : ''}`;
+    if (g.phase === 'lobby' || g.phase === 'final') bindRoster(v);
     renderHostBits(true);
   }
   v.querySelectorAll('[data-start]').forEach(b => (b.onclick = async () => { ui.secretWord = null; await act('game.start', { kind: b.dataset.start }); }));
-  if (typing !== null) { $('#newName').value = typing; $('#newName').focus(); }
+  if (typing !== null && $('#newName')) { $('#newName').value = typing; $('#newName').focus(); }
 }
 function renderHostBits(full) {
   const g = S.game; if (!g) return;
@@ -397,11 +433,36 @@ function renderHostBits(full) {
   $('#gReveal') && ($('#gReveal').onclick = () => act('game.reveal', { round: g.round }));
   $('#gEnd').onclick = () => { ui.secretWord = null; act('game.end'); };
   const scores = g.teamScores || teamTotals();
-  const scoreline = `<div class="scoreline">${S.teams.map(t => `<span style="color:${t.color}">${t.name} ${scores[t.id] || 0}</span>`).join('')}</div>`;
+  const scoreline = g.solo
+    ? `<div class="scoreline faces-line">${[...S.players].sort((a, b) => b.score - a.score).map(p => `<span>${face(p, 26)}${esc(p.name)} <b class="num">${p.score || 0}</b></span>`).join('')}</div>`
+    : `<div class="scoreline">${S.teams.map(t => `<span style="color:${t.color}">${t.name} ${scores[t.id] || 0}</span>`).join('')}</div>`;
   const locals = S.players.filter(p => p.local);
-  if (g.phase === 'lobby') { title.textContent = 'Everyone ready?'; body.innerHTML = `<p class="hint" style="margin:0">${S.players.length} playing. Add anyone missing below, then start.</p>`; return; }
-  if (g.phase === 'final') { const w = S.teams.find(t => t.id === g.winner); title.textContent = w ? `${w.name} wins` : 'Final scores'; body.innerHTML = scoreline; return; }
+  if (g.phase === 'lobby') { title.textContent = 'Everyone ready?'; body.innerHTML = `<p class="hint" style="margin:0">${S.players.length} playing. Add anyone missing below${S.players.some(p => p.local && !p.photo) ? ', tap a face to add a photo,' : ''} then start.</p>`; return; }
+  if (g.phase === 'final') {
+    if (g.solo) { const names = (g.champs || []).map(id => personOf(id)?.name).filter(Boolean); title.textContent = names.length ? `${names.join(' & ')} ${names.length > 1 ? 'tie!' : 'wins!'}` : 'Final scores'; }
+    else { const w = S.teams.find(t => t.id === g.winner); title.textContent = w ? `${w.name} wins` : 'Final scores'; }
+    body.innerHTML = scoreline; return;
+  }
 
+  if (g.kind === 'trivia' && g.hotSeat && g.turn) {
+    // hot seat: the iPad is just that person's screen
+    const p = personOf(g.turn.pid) || g.turn;
+    title.textContent = `${p.name}'s turn`;
+    $('#gNext') && g.phase === 'turn' && ($('#gNext').textContent = `Skip ${p.name}`);
+    if (g.phase === 'turn') {
+      body.innerHTML = `<div class="seat">${face(p, 150)}<div class="seat-name" style="color:${p.color}">Pass the iPad to ${esc(p.name)}</div><div class="host-meta">Question ${g.round} of ${g.total}${g.turn.streak >= 2 ? ` · ${g.turn.streak} in a row` : ''}</div><button class="btn primary seat-go" id="seatGo">I'm ${esc(p.name)}, show my question</button></div>`;
+      $('#seatGo').onclick = () => act('game.turnReady', { round: g.round });
+    } else if (g.phase === 'question') {
+      const picked = g.picked !== null && g.picked !== undefined;
+      body.innerHTML = `<div class="seat-q"><div class="seat-head">${face(p, 54)}<div class="grow"><div class="host-meta">${esc(g.category || '')}</div><div class="host-q" style="margin:2px 0 0">${esc(g.q)}</div></div></div><div class="seat-timer"><i style="animation-duration:${Math.max(0, g.endsAt - net.now())}ms"></i></div>
+        <div class="bigans">${picked ? `<div class="locked">Locked in: ${'ABCD'[g.picked]}. Look at the TV…</div>` : g.choices.map((c, i) => `<button class="bans" data-ans="${i}" style="background:${ANS[i]}"><b>${'ABCD'[i]}</b>${esc(c)}</button>`).join('')}</div></div>`;
+      body.querySelectorAll('[data-ans]').forEach(b => (b.onclick = () => { body.querySelector('.bigans').innerHTML = `<div class="locked">Locked in: ${'ABCD'[+b.dataset.ans]}. Look at the TV…</div>`; act('game.answer', { pid: p.id, choice: +b.dataset.ans }); }));
+    } else {
+      const pts = g.gained?.[p.id];
+      body.innerHTML = `<div class="seat">${face(p, 110)}<div class="seat-name ${pts ? 'good' : 'bad'}">${pts ? `+${pts}${g.turn.streak >= 3 ? ` · ${g.turn.streak} in a row!` : ''}` : g.turn.timedOut ? "Time's up!" : 'So close!'}</div><div class="answer-line">${esc(g.choices[g.answer])}</div><p class="host-meta">${esc(g.fact || '')}</p>${scoreline}</div>`;
+    }
+    return;
+  }
   if (g.kind === 'trivia') {
     title.textContent = g.category || 'Trivia';
     if (g.phase === 'question') {
@@ -420,7 +481,7 @@ function renderHostBits(full) {
   } else if (g.kind === 'name-that-song') {
     if (g.phase === 'playing') {
       title.textContent = 'Know it? Slap your name!';
-      body.innerHTML = `<div class="buzzers">${S.players.map(p => `<button class="buzzer" data-buzz="${p.id}" style="background:${teamOf(p.team).color}"${(g.wrong || []).includes(p.id) ? ' disabled' : ''}>${esc(p.name)}</button>`).join('')}</div><p class="host-meta mt">${g.source === 'alexa' ? 'Playing on Alexa.' : 'Playing a carol on the TV.'} A wrong guess locks you out for this song.</p>`;
+      body.innerHTML = `<div class="buzzers">${S.players.map(p => `<button class="buzzer" data-buzz="${p.id}" style="background:${g.solo ? p.color : teamOf(p.team).color}"${(g.wrong || []).includes(p.id) ? ' disabled' : ''}>${g.solo ? face(p, 44) : ''}${esc(p.name)}</button>`).join('')}</div><p class="host-meta mt">${g.source === 'alexa' ? 'Playing on Alexa.' : g.source === 'preview' ? 'Playing the real song on the TV.' : 'Playing a carol on the TV.'} A wrong guess locks you out for this song.</p>`;
       body.querySelectorAll('[data-buzz]').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); act('game.buzz', { pid: b.dataset.buzz }); }));
     } else if (g.phase === 'buzzed') {
       const p = S.players.find(x => x.id === g.buzz.pid);
@@ -913,6 +974,13 @@ async function loadAiUsage() {
 function render() {
   renderStage();
   if (!S) return;
+  // game mode: while a game is on, the iPad is only the game (no tree, no tabs)
+  const gm = !!S.game;
+  if (gm !== document.body.classList.contains('gamemode')) {
+    document.body.classList.toggle('gamemode', gm);
+    if (gm) { ui.tabBeforeGame = ui.tab; ui.tab = 'games'; $$('.tab').forEach(b => b.classList.toggle('on', b.dataset.tab === 'games')); $$('.view').forEach(v => v.classList.toggle('on', v.dataset.view === 'games')); $('#views').scrollTop = 0; }
+    else if (ui.tabBeforeGame) { const t = ui.tabBeforeGame; ui.tabBeforeGame = null; setTab(t); return; }
+  }
   if (ui.tab === 'lights') renderLights();
   if (ui.tab === 'music') renderMusic();
   if (ui.tab === 'games') renderGames();

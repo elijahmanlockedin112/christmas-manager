@@ -19,7 +19,8 @@ export function halo(r, g, b) {
 // Draws the living tree: a painted fir silhouette with every real LED at its real position,
 // lit with the exact colours the server is sending to the strip.
 export class TreeView {
-  constructor(canvas, { interactive = false, star = true, floor = true } = {}) {
+  // maxFps / scale: the Pi's TV draws fewer, smaller frames so carol audio isn't starved of CPU.
+  constructor(canvas, { interactive = false, star = true, floor = true, maxFps = 0, scale = 1 } = {}) {
     this.c = canvas;
     this.ctx = canvas.getContext('2d');
     this.layout = [];
@@ -27,13 +28,19 @@ export class TreeView {
     this.star = star;
     this.floor = floor;
     this.bg = null;
-    this.dpr = Math.min(2, window.devicePixelRatio || 1);
+    this.dpr = Math.min(2, window.devicePixelRatio || 1) * scale;
     this.ro = new ResizeObserver(() => this.resize());
     this.ro.observe(canvas);
     this.resize();
     this.raf = null;
     this.dirty = true;
-    const loop = () => { if (this.dirty) { this.draw(); this.dirty = false; } this.raf = requestAnimationFrame(loop); };
+    const minGap = maxFps ? 1000 / maxFps - 2 : 0;
+    let lastDraw = 0;
+    const loop = now => {
+      this.raf = requestAnimationFrame(loop);
+      if (!this.dirty || now - lastDraw < minGap) return;
+      lastDraw = now; this.draw(); this.dirty = false;
+    };
     this.raf = requestAnimationFrame(loop);
   }
   setLayout(list) { this.layout = list || []; this.bg = null; this.dirty = true; }
