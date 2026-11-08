@@ -338,7 +338,11 @@ const GAMES = [
   ['name-that-song', 'Name That Song', 'A real Christmas hit plays. Slap your name on the iPad to buzz in.', 'music'],
   ['would-you-rather', 'Would You Rather', 'Everyone picks A or B. The tree splits red and green to show the room.', 'shuffle'],
   ['pictionary', 'Pictionary', 'Take turns drawing on the iPad with the Pencil. Everyone guesses out loud.', 'pencil'],
+  ['most-likely', 'Most Likely To', 'Everyone secretly votes for who in the family fits the line. Faces and votes land on the TV.', 'people'],
+  ['mind-reader', 'Mind Reader', 'One person secretly picks A or B. Everyone else guesses what they chose. Know your family.', 'sparkle'],
+  ['caption-chaos', 'Caption Chaos', 'Caption a ridiculous scene, then vote for the funniest one. No voting for yourself.', 'chat'],
 ];
+const PARTY = ['most-likely', 'mind-reader', 'caption-chaos'];
 const GAME_NAMES = Object.fromEntries(GAMES.map(g => [g[0], g[1]]));
 const ANS = ['#d6312b', '#1f9a52', '#c98d16', '#3a7be0'];
 let lastGameSig = '';
@@ -427,7 +431,7 @@ function renderHostBits(full) {
   const g = S.game; if (!g) return;
   const title = $('#hostTitle'), body = $('#hostBody'), btns = $('#hostBtns');
   const nextLabel = g.phase === 'lobby' ? 'Start round 1' : g.round >= g.total && g.phase === 'reveal' ? 'Final scores' : 'Next';
-  btns.innerHTML = `${g.phase !== 'final' ? `<button class="btn primary" id="gNext">${nextLabel}</button>` : `<button class="btn primary" id="gAgain">Play again</button>`}${['question', 'vote', 'draw', 'playing', 'buzzed', 'pass'].includes(g.phase) ? '<button class="btn" id="gReveal">Reveal</button>' : ''}<button class="btn ghost" id="gEnd">End</button>`;
+  btns.innerHTML = `${g.phase !== 'final' ? `<button class="btn primary" id="gNext">${nextLabel}</button>` : `<button class="btn primary" id="gAgain">Play again</button>`}${['question', 'vote', 'draw', 'playing', 'buzzed', 'pass', 'write', 'pick', 'guess'].includes(g.phase) ? '<button class="btn" id="gReveal">Reveal</button>' : ''}<button class="btn ghost" id="gEnd">End</button>`;
   $('#gNext') && ($('#gNext').onclick = () => act('game.next', { round: g.round, phase: g.phase }));
   $('#gAgain') && ($('#gAgain').onclick = () => act('game.start', { kind: g.kind }));
   $('#gReveal') && ($('#gReveal').onclick = () => act('game.reveal', { round: g.round }));
@@ -444,6 +448,7 @@ function renderHostBits(full) {
     body.innerHTML = scoreline; return;
   }
 
+  if (PARTY.includes(g.kind)) return partyHost(g, title, body, scoreline);
   if (g.kind === 'trivia' && g.hotSeat && g.turn) {
     // hot seat: the iPad is just that person's screen
     const p = personOf(g.turn.pid) || g.turn;
@@ -518,6 +523,96 @@ function renderHostBits(full) {
       title.textContent = g.word ? `It was "${g.word}"` : 'Pictionary';
       body.innerHTML = `${g.correct?.length ? `<p class="host-meta">Got it: ${g.correct.map(c => esc(c.name)).join(', ')}</p>` : '<p class="host-meta">Nobody got it this time.</p>'}${scoreline}`;
     }
+  }
+}
+// ---------- family games (Most Likely To, Mind Reader, Caption Chaos) ----------
+// Players tap their own face to say who they are, so the iPad can go around in any order.
+ui.voter = null; ui.draft = ''; ui.myCaps = {}; ui.partyKey = '';
+const facePick = (p, attr) => `<button class="pface" ${attr}="${p.id}" style="--c:${p.color}">${face(p, 104)}<span>${esc(p.name)}</span></button>`;
+function partyHost(g, title, body, scoreline) {
+  const x = g.x || {}, byId = id => personOf(id);
+  const key = `${g.kind}:${g.round}:${g.phase}`;
+  if (ui.partyKey !== key) { ui.partyKey = key; ui.voter = null; ui.draft = ''; if (g.phase === 'write') ui.myCaps = {}; }
+  const redo = () => renderGames(true);
+  const voter = ui.voter && byId(ui.voter);
+  const asLine = p => `<div class="voting-as">${face(p, 44)}<div class="grow"><div class="host-meta">Voting as</div><b style="color:${p.color}">${esc(p.name)}</b></div><button class="btn sm ghost" id="notMe">Not me</button></div>`;
+  const wire = () => { $('#notMe') && ($('#notMe').onclick = () => { ui.voter = null; redo(); }); body.querySelectorAll('[data-who]').forEach(b => (b.onclick = () => { ui.voter = b.dataset.who; redo(); })); };
+  const waiting = n => `<div class="host-meta" style="text-align:center;margin-top:14px">${x.voted?.length ?? n} of ${S.players.length} done</div>`;
+
+  if (g.kind === 'most-likely') {
+    title.textContent = 'Most likely to…';
+    if (g.phase === 'vote') {
+      const left = S.players.filter(p => !x.voted.includes(p.id));
+      body.innerHTML = `<div class="plead">Who is the most likely to</div><div class="host-q big">${esc(x.prompt)}?</div>` +
+        (!left.length ? `<p class="host-meta">Everyone voted. Look at the TV…</p>`
+          : voter && left.some(p => p.id === voter.id) ? `${asLine(voter)}<div class="host-meta" style="margin:10px 0">Tap the one person who is the most likely. You can pick yourself.</div><div class="pgrid">${S.players.map(p => facePick(p, 'data-vote')).join('')}</div>`
+            : `<div class="host-meta" style="margin:10px 0">Who is voting? Tap your face.</div><div class="pgrid">${left.map(p => facePick(p, 'data-who')).join('')}</div>`) + waiting();
+      wire();
+      body.querySelectorAll('[data-vote]').forEach(b => (b.onclick = () => { const v = ui.voter; ui.voter = null; act('game.ballot', { pid: v, target: b.dataset.vote }); toast('Locked in. Pass the iPad on.'); redo(); }));
+    } else {
+      const names = (x.winners || []).map(id => byId(id)?.name).filter(Boolean);
+      title.textContent = names.length ? `${names.join(' & ')}!` : 'Nobody agrees';
+      body.innerHTML = `<div class="plead">Most likely to</div><div class="host-q">${esc(x.prompt)}</div><div class="rank">${[...S.players].sort((a, b) => (x.tally[b.id] || 0) - (x.tally[a.id] || 0)).map(p => `<div class="${x.winners?.includes(p.id) ? 'win' : ''}">${face(p, 36)}<span class="grow">${esc(p.name)}</span><b class="num">${x.tally[p.id] || 0}</b></div>`).join('')}</div>${scoreline}`;
+    }
+    return;
+  }
+
+  if (g.kind === 'mind-reader') {
+    const sp = byId(x.spot?.id) || x.spot;
+    title.textContent = `${sp.name} is in the spotlight`;
+    const opt = (s, i) => `<span class="mr-opt"><b>${'AB'[i]}</b>${esc(x[s])}</span>`;
+    if (g.phase === 'turn') {
+      $('#gNext') && ($('#gNext').textContent = `Skip ${sp.name}`);
+      body.innerHTML = `<div class="seat">${face(sp, 150)}<div class="seat-name" style="color:${sp.color}">Pass the iPad to ${esc(sp.name)}</div><div class="host-meta">Round ${g.round} of ${g.total} · everyone else, look away from the screen</div><button class="btn primary seat-go" id="seatGo">I'm ${esc(sp.name)}, show my choice</button></div>`;
+      $('#seatGo').onclick = () => act('game.turnReady', { round: g.round });
+    } else if (g.phase === 'pick') {
+      body.innerHTML = `<div class="seat">${face(sp, 70)}<div class="seat-name">${esc(sp.name)}, which would YOU pick?</div><div class="host-meta">Be honest. The others are going to guess.</div></div><div class="bigans mr-two"><button class="bans" data-side="a" style="background:${ANS[0]}">${opt('a', 0)}</button><button class="bans" data-side="b" style="background:${ANS[3]}">${opt('b', 1)}</button></div>`;
+      body.querySelectorAll('[data-side]').forEach(b => (b.onclick = () => { body.querySelector('.bigans').innerHTML = '<div class="locked">Locked in. Pass the iPad on.</div>'; act('game.pickSide', { pid: sp.id, side: b.dataset.side }); }));
+    } else if (g.phase === 'guess') {
+      const left = S.players.filter(p => p.id !== sp.id && !x.guessed.includes(p.id));
+      body.innerHTML = `<div class="plead">What did ${esc(sp.name)} pick?</div>` +
+        (!left.length ? `<p class="host-meta">Everyone guessed. Look at the TV…</p>`
+          : voter && left.some(p => p.id === voter.id) ? `${asLine(voter).replace('Voting as', 'Guessing as')}<div class="bigans mr-two"><button class="bans" data-gs="a" style="background:${ANS[0]}">${opt('a', 0)}</button><button class="bans" data-gs="b" style="background:${ANS[3]}">${opt('b', 1)}</button></div>`
+            : `<div class="host-meta" style="margin:10px 0">Who is guessing? Tap your face.</div><div class="pgrid">${left.map(p => facePick(p, 'data-who')).join('')}</div>`) + `<div class="host-meta" style="text-align:center;margin-top:14px">${x.guessed.length} of ${S.players.length - 1} guessed</div>`;
+      wire();
+      body.querySelectorAll('[data-gs]').forEach(b => (b.onclick = () => { const v = ui.voter; ui.voter = null; act('game.guessSide', { pid: v, side: b.dataset.gs }); toast('Locked in. Pass the iPad on.'); redo(); }));
+    } else {
+      const right = (x.right || []).map(id => byId(id)?.name).filter(Boolean);
+      title.textContent = right.length ? `${sp.name} is ${right.length === x.others ? 'an open book' : 'readable'}` : `${sp.name} fooled everyone`;
+      body.innerHTML = `<div class="seat">${face(sp, 84)}<div class="seat-name">${sp.name} picked</div><div class="answer-line">${esc(x[x.pick] || '')}</div><p class="host-meta">${right.length ? `Read correctly by ${right.map(esc).join(', ')}` : 'Nobody saw that coming.'}</p></div>${scoreline}`;
+    }
+    return;
+  }
+
+  // caption chaos
+  const bar = g.endsAt ? `<div class="seat-timer"><i style="animation-duration:${Math.max(0, g.endsAt - net.now())}ms"></i></div>` : '';
+  const scene = `<div class="plead">The scene</div><div class="host-q big">${esc(x.scene)}</div><div class="cap-ask">${esc(x.ask)}</div>`;
+  if (g.phase === 'write') {
+    title.textContent = 'Write the caption';
+    const left = S.players.filter(p => !x.written.includes(p.id));
+    body.innerHTML = scene + bar + (!left.length ? `<p class="host-meta">All captions are in. Look at the TV…</p>`
+      : voter && left.some(p => p.id === voter.id) ? `${asLine(voter).replace('Voting as', 'Writing as')}<textarea id="capText" class="cap-input" maxlength="90" rows="2" placeholder="Make it funny. Keep it short." autocomplete="off" autocapitalize="sentences"></textarea><div class="btns mt"><button class="btn primary" id="capGo" style="height:54px;flex:1">Lock it in</button><button class="btn ghost" id="capSkip" style="height:54px">Skip me</button></div>`
+        : `<div class="host-meta" style="margin:10px 0">Who is writing? Tap your face.</div><div class="pgrid">${left.map(p => facePick(p, 'data-who')).join('')}</div>`) + `<div class="host-meta" style="text-align:center;margin-top:14px">${x.written.length} of ${S.players.length} in${x.elf ? ' · an elf is writing one too' : ''}</div>`;
+    wire();
+    const ta = $('#capText');
+    if (ta) {
+      ta.value = ui.draft; ta.oninput = () => (ui.draft = ta.value);
+      $('#capGo').onclick = () => { const t = ta.value.replace(/\s+/g, ' ').trim(); if (!t) { toast('Type a caption first', true); return; } const v = ui.voter; ui.myCaps[v] = t.slice(0, 90); ui.voter = null; ui.draft = ''; act('game.caption', { pid: v, text: t }); toast('Caption locked. Pass the iPad on.'); redo(); };
+      $('#capSkip').onclick = () => { const v = ui.voter; ui.voter = null; ui.draft = ''; act('game.caption', { pid: v, skip: true }); redo(); };
+    }
+  } else if (g.phase === 'vote') {
+    title.textContent = 'Vote for the funniest';
+    const left = S.players.filter(p => !x.voted.includes(p.id));
+    const mine = voter && ui.myCaps[voter.id];
+    body.innerHTML = scene + bar + (!left.length ? `<p class="host-meta">Everyone voted. Look at the TV…</p>`
+      : voter && left.some(p => p.id === voter.id) ? `${asLine(voter)}<div class="caps">${x.entries.filter(e => e.text !== mine).map(e => `<button class="capbtn" data-cap="${e.id}">${esc(e.text)}</button>`).join('')}</div>`
+        : `<div class="host-meta" style="margin:10px 0">Who is voting? Tap your face. Your own caption is hidden from you.</div><div class="pgrid">${left.map(p => facePick(p, 'data-who')).join('')}</div>`) + waiting();
+    wire();
+    body.querySelectorAll('[data-cap]').forEach(b => (b.onclick = () => { const v = ui.voter; ui.voter = null; act('game.ballot', { pid: v, target: b.dataset.cap }); toast('Vote locked. Pass the iPad on.'); redo(); }));
+  } else {
+    const w = x.entries.find(e => e.id === x.winners?.[0]);
+    title.textContent = w ? (w.author === 'elf' ? 'The elf wins this one' : `${byId(w.author)?.name || 'Someone'} wins the round`) : 'No votes this round';
+    body.innerHTML = `${scene}<div class="caps reveal">${x.entries.map(e => `<div class="capres${x.winners?.includes(e.id) ? ' win' : ''}"><span class="grow">${esc(e.text)}</span><small>${e.author === 'elf' ? 'the elf' : esc(byId(e.author)?.name || '')} · ${e.voters.length}</small></div>`).join('')}</div>${scoreline}`;
   }
 }
 function teamTotals() { const s = {}; for (const p of S.players) s[p.team] = (s[p.team] || 0) + (p.score || 0); return s; }

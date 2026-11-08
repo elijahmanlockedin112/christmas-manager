@@ -131,6 +131,18 @@ A beginning, a ridiculous middle and a cozy happy ending at the Christmas tree.`
       maxTokens: 1500,
     });
   }
+  // Caption Chaos: the elf's own entry, mixed in anonymously with the family's captions
+  async captionElf({ scene, ask }) {
+    const out = await this.call({
+      feature: 'caption-elf',
+      schema: z.object({ caption: z.string().describe('one funny caption, max 14 words, in the voice of a character in the scene, no quotation marks') }),
+      prompt: `A family party game shows this ridiculous scene: "${String(scene).slice(0, 200)}"
+The prompt is: "${String(ask).slice(0, 80)}"
+Write one short, genuinely funny caption that answers the prompt. Deadpan beats wacky. Do not explain the joke.`,
+      maxTokens: 300,
+    });
+    return out.caption;
+  }
   askSanta({ question, asker }) {
     return this.call({
       feature: 'ask-santa',

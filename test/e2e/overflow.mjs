@@ -68,7 +68,7 @@ try {
   for (const [w, h] of sizes) {
     const p = await chrome.page(`${BASE}/tv`, { width: w, height: h, scale: 0.5 });
     await sleep(1500);
-    for (const [name, fn] of cases) {
+    for (const [name, fn] of process.env.PARTY_ONLY ? [] : cases) {
       await fn(); await sleep(1300);
       const bad = await p.eval(AUDIT);
       await p.shot(path.join(OUT, `${w}-${name}.png`));
@@ -77,7 +77,7 @@ try {
     await act('show.stop');
     // games with real players
     for (const n of ['Grandma Rosemary', 'Uncle Bartholomew', 'Lily', 'Dad']) await act('game.addPlayer', { name: n }).catch(() => { });
-    for (const kind of ['trivia', 'would-you-rather', 'name-that-song', 'pictionary']) {
+    for (const kind of process.env.PARTY_ONLY ? [] : ['trivia', 'would-you-rather', 'name-that-song', 'pictionary']) {
       await act('game.start', { kind }); await sleep(500);
       let bad = await p.eval(AUDIT); report.push(`${w}x${h} ${kind}-lobby: ${bad.length ? bad.join(' | ') : 'ok'}`);
       for (let r = 0; r < (kind === 'trivia' ? 6 : 2); r++) {
@@ -88,6 +88,36 @@ try {
         await act('game.reveal', {}); await sleep(700);
         bad = await p.eval(AUDIT);
         report.push(`${w}x${h} ${kind}-reveal${r + 1}: ${bad.length ? bad.join(' | ') : 'ok'}`);
+      }
+      await act('game.end'); await sleep(300);
+    }
+    // the family games, with the longest names and captions the iPad allows
+    const ids = (await fetch(`${BASE}/api/state`).then(r => r.json())).players.map(p => p.id);
+    const audit = async tag => { const bad = await p.eval(AUDIT); report.push(`${w}x${h} ${tag}: ${bad.length ? bad.join(' | ') : 'ok'}`); };
+    const long = 'Honestly I only wanted one more cookie before the chimney thing got really weird';
+    for (const kind of ['most-likely', 'mind-reader', 'caption-chaos']) {
+      await act('game.start', { kind, rounds: 2 }); await sleep(500); await audit(`${kind}-lobby`);
+      for (let r = 0; r < 2; r++) {
+        await act('game.next'); await sleep(900);
+        if (kind === 'most-likely') {
+          await audit(`${kind}-vote${r + 1}`);
+          for (const id of ids.slice(0, 3)) await act('game.ballot', { pid: id, target: ids[1] });
+          await act('game.reveal'); await sleep(1500); await audit(`${kind}-reveal${r + 1}`);
+        } else if (kind === 'mind-reader') {
+          await audit(`${kind}-turn${r + 1}`);
+          await act('game.turnReady', {}); await sleep(600); await audit(`${kind}-pick${r + 1}`);
+          const spot = (await fetch(`${BASE}/api/state`).then(r => r.json())).game.x.spot.id;
+          await act('game.pickSide', { pid: spot, side: 'b' }); await sleep(500);
+          for (const id of ids.filter(i => i !== spot)) await act('game.guessSide', { pid: id, side: id === ids[0] ? 'b' : 'a' });
+          await sleep(300); await audit(`${kind}-guess${r + 1}`);
+          await act('game.reveal'); await sleep(1500); await audit(`${kind}-reveal${r + 1}`);
+        } else {
+          await audit(`${kind}-write${r + 1}`);
+          for (const id of ids) await act('game.caption', { pid: id, text: long });
+          await act('game.reveal'); await sleep(1500); await audit(`${kind}-vote${r + 1}`);
+          for (const id of ids) { await act('game.ballot', { pid: id, target: 'c0' }); await act('game.ballot', { pid: id, target: 'c1' }); }
+          await act('game.reveal'); await sleep(1500); await audit(`${kind}-reveal${r + 1}`);
+        }
       }
       await act('game.end'); await sleep(300);
     }

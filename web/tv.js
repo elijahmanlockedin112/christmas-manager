@@ -571,16 +571,76 @@ function avatar(p, { hat = false, cls = '', ring = false } = {}) {
 // solo scoreboard: little faces with scores
 const playersLine = () => `<div class="faces">${[...S.players].sort((a, b) => b.score - a.score).map(p => `<span>${avatar(p, { cls: 'xs' })}<b>${fmt(p.score || 0)}</b></span>`).join('')}</div>`;
 
+// ---------- family games: Most Likely To, Mind Reader, Caption Chaos ----------
+const PARTY_TV = ['most-likely', 'mind-reader', 'caption-chaos'];
+const PARTY_TITLE = { 'most-likely': 'Most Likely To', 'mind-reader': 'Mind Reader', 'caption-chaos': 'Caption Chaos' };
+const CHK = `<svg class="chk" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#3fd17c"/><path d="M6.5 12.5l3.6 3.6 7.4-8" stroke="#0b1510" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const ELF = { id: 'elf', name: 'The Elf', color: '#1f9a52' };
+const who = id => (id === 'elf' ? ELF : person(id)) || { id, name: '?', color: '#888' };
+function partyView(g, prevPhase, { timer, teamsLine }) {
+  const x = g.x || {}, foot = (left = '') => `<div class="g-foot"><span>${left}</span>${teamsLine}</div>`;
+  const nPlayers = S.players.length;
+  if (g.kind === 'most-likely') {
+    if (g.phase === 'vote') {
+      return `<div class="ml"><div class="ml-lead">Who is the most likely to</div><h1 class="ml-q">${esc(x.prompt)}?</h1>
+        <div class="ml-row">${S.players.map((p, i) => `<div class="ml-p" style="animation-delay:${i * 90}ms">${avatar(p, { cls: 'lg' })}${x.voted.includes(p.id) ? CHK : ''}<b>${esc(p.name)}</b></div>`).join('')}</div></div>
+        <div class="g-foot"><span class="votes-in">${S.players.map(p => `<i class="${x.voted.includes(p.id) ? 'on' : ''}" style="--c:${p.color}"></i>`).join('')}<em>${x.voted.length} of ${nPlayers} have voted. Use the iPad, in secret.</em></span>${teamsLine}</div>`;
+    }
+    const win = new Set(x.winners || []);
+    const names = [...win].map(id => who(id).name);
+    const verdict = win.size ? `${names.join(' & ')}${win.size > 1 ? ' tie' : ''}. ${Math.max(...Object.values(x.tally))} votes.` : 'Five different answers. Nobody agrees.';
+    const cols = S.players.map((p, i) => {
+      const voters = Object.keys(x.ballots || {}).filter(v => x.ballots[v] === p.id);
+      return `<div class="ml-p ${win.has(p.id) ? 'win' : ''}" style="animation-delay:${i * 140}ms"><div class="stack">${voters.map(v => avatar(who(v), { cls: 'xs' })).join('')}</div><div class="cnt num">${x.tally[p.id] || 0}</div>${avatar(p, { cls: win.has(p.id) ? 'lg' : 'md', hat: win.has(p.id) })}<b>${esc(p.name)}</b>${x.gained?.[p.id] ? `<span class="pts">+${x.gained[p.id]}</span>` : ''}</div>`;
+    }).join('');
+    return `<div class="ml reveal"><div class="ml-lead">Most likely to</div><h1 class="ml-q sm">${esc(x.prompt)}</h1><div class="ml-row">${cols}</div><div class="ml-verdict ${win.size ? 'good' : ''}">${esc(verdict)}</div></div>` + foot();
+  }
+
+  if (g.kind === 'mind-reader') {
+    const sp = person(x.spot.id) || x.spot;
+    if (g.phase === 'turn') {
+      return `<div class="upnext"><div class="pop">${avatar(sp, { hat: true, cls: 'xl' })}</div><div><div class="muted" style="font-size:3vh">Round ${g.round} of ${g.total}</div><h1>${esc(sp.name)}, you're in the spotlight!</h1><div style="font-size:3.4vh">Take the iPad and tap <b>show my choice</b>. Everyone else, eyes on the TV.</div></div></div>` + foot();
+    }
+    const rev = g.phase === 'reveal';
+    const guessers = side => Object.keys(x.guesses || {}).filter(id => x.guesses[id] === side);
+    const opt = (side, i) => {
+      const chosen = rev && x.pick === side;
+      return `<div class="mr-card ${rev ? (chosen ? 'chosen' : 'dim') : ''}"><i style="background:${i ? '#3a7be0' : '#d6312b'}">${'AB'[i]}</i><span>${esc(x[side])}</span>${rev ? `<div class="guessers">${guessers(side).map(id => `<span class="${chosen ? 'ok' : 'no'}">${avatar(who(id), { cls: 'xs' })}</span>`).join('')}</div>` : ''}</div>`;
+    };
+    const guessed = x.guessed || [];
+    const status = rev ? '' : g.phase === 'pick' ? `<div class="mr-status">${esc(sp.name)} is choosing in secret…</div>`
+      : `<div class="mr-status"><span class="votes-in">${S.players.filter(p => p.id !== sp.id).map(p => `<i class="${guessed.includes(p.id) ? 'on' : ''}" style="--c:${p.color}"></i>`).join('')}</span>Guess what ${esc(sp.name)} picked. ${guessed.length} of ${nPlayers - 1} in.</div>`;
+    const right = x.right || [];
+    const verdict = !rev ? '' : right.length ? (right.length === x.others ? `${esc(sp.name)} is an open book.` : `${right.length} of ${x.others} read ${esc(sp.name)} right.`) : `${esc(sp.name)} fooled everyone.`;
+    return `<div class="mr"><div class="who ${rev ? (right.length ? 'yay' : 'droop') : ''}">${avatar(sp, { hat: true, cls: 'xl' })}<b style="color:${sp.color}">${esc(sp.name)}</b></div><div class="mr-main"><div class="ml-lead">${rev ? `${esc(sp.name)} picked` : `Which would ${esc(sp.name)} pick?`}</div><div class="mr-cards">${opt('a', 0)}<div class="or">or</div>${opt('b', 1)}</div>${rev ? `<div class="ml-verdict ${right.length ? 'good' : ''}">${verdict}</div>` : status}</div></div>` + foot();
+  }
+
+  // caption chaos
+  const scene = (sm = false) => `<div class="cc-scene ${sm ? 'sm' : ''}"><div class="ml-lead">The scene</div><div class="cc-text">${esc(x.scene)}</div><div class="cc-ask">${esc(x.ask)}</div></div>`;
+  if (g.phase === 'write') {
+    return `<div class="cc">${scene()}<div class="cc-write">${timer(g.endsAt)}<div class="ml-row cc-faces">${S.players.map(p => `<div class="ml-p ${x.written.includes(p.id) ? 'done' : ''}">${avatar(p, { cls: 'md' })}${x.written.includes(p.id) ? CHK : ''}<b>${esc(p.name)}</b><span class="state">${x.written.includes(p.id) ? 'Caption in' : 'Writing…'}</span></div>`).join('')}${x.elf ? `<div class="ml-p">${avatar(ELF, { cls: 'md' })}<b>The Elf</b><span class="state">Sneaking one in</span></div>` : ''}</div></div></div>` + foot();
+  }
+  if (g.phase === 'vote') {
+    return `<div class="cc">${scene(true)}${timer(g.endsAt)}<div class="cc-list">${x.entries.map((e, i) => `<div class="cc-entry" style="animation-delay:${i * 120}ms"><i class="num">${i + 1}</i><span>${esc(e.text)}</span></div>`).join('')}</div></div><div class="g-foot"><span class="votes-in">${S.players.map(p => `<i class="${x.voted.includes(p.id) ? 'on' : ''}" style="--c:${p.color}"></i>`).join('')}<em>${x.voted.length} of ${nPlayers} voted. You can't vote for your own.</em></span>${teamsLine}</div>`;
+  }
+  const win = new Set(x.winners || []);
+  if (!x.entries.length) return `<div class="cc">${scene()}<div class="ml-verdict">Not enough captions to vote on.</div></div>` + foot();
+  return `<div class="cc reveal">${scene(true)}<div class="cc-list res">${x.entries.map((e, i) => {
+    const a = who(e.author), w = win.has(e.id);
+    return `<div class="cc-entry ${w ? 'win' : ''}" style="animation-delay:${i * 160}ms">${avatar(a, { cls: w ? 'md' : 'xs', hat: w && e.author !== 'elf' })}<span><em>${esc(a.name)}</em>${esc(e.text)}</span><b class="num">${e.voters.length}</b></div>`;
+  }).join('')}</div></div>` + foot();
+}
+
 scene('game', {
   init() { this.key = ''; },
   update() {
     const g = S.game;
     if (!g) return;
-    const key = JSON.stringify([g.kind, g.phase, g.round, g.q, g.a, g.buzz, g.answer, g.word, g.result, g.winner, S.players.map(p => p.id + p.photo + p.score), S.teams.length, g.kind === 'pictionary' ? 0 : g.answered?.length, g.votesIn, g.guesses?.length, g.correct?.length, g.turn?.pid, g.picked]);
+    const key = JSON.stringify([g.kind, g.phase, g.round, g.q, g.a, g.buzz, g.answer, g.word, g.result, g.winner, S.players.map(p => p.id + p.photo + p.score), S.teams.length, g.kind === 'pictionary' ? 0 : g.answered?.length, g.votesIn, g.guesses?.length, g.correct?.length, g.turn?.pid, g.picked, g.x]);
     if (key === this.key) return;
     const prevPhase = this.phase;
     this.key = key; this.phase = g.phase;
-    const names = { trivia: 'Trivia Showdown', 'name-that-song': 'Name That Song', 'would-you-rather': 'Would You Rather', pictionary: 'Pictionary' };
+    const names = { trivia: 'Trivia Showdown', 'name-that-song': 'Name That Song', 'would-you-rather': 'Would You Rather', pictionary: 'Pictionary', ...PARTY_TITLE };
     const top = `<div class="g-top"><b>${names[g.kind]}</b><span>${g.phase === 'lobby' || g.phase === 'final' ? '' : `Round ${g.round} of ${g.total}`}</span></div>`;
     const scores = g.teamScores || (() => { const s = {}; for (const p of S.players) s[p.team] = (s[p.team] || 0) + (p.score || 0); return s; })();
     const teamsLine = g.solo ? playersLine() : `<div class="teams">${S.teams.map(t => `<span style="color:${t.color}">${t.name} ${fmt(scores[t.id] || 0)}</span>`).join('')}</div>`;
@@ -597,6 +657,14 @@ scene('game', {
       const podium = [board[1], board[0], board[2]].filter(Boolean);
       el.innerHTML = top + `<div class="final"><h1>${champs.size ? [...champs].map(id => esc(board.find(p => p.id === id)?.name || '')).join(' & ') + (champs.size > 1 ? ' tie!' : ' wins!') : 'Final scores'}</h1><div class="podium">${podium.map(p => `<div class="${p === board[0] ? 'first' : ''}">${champs.has(p.id) ? STAR : ''}${avatar(person(p.id) || p, { hat: true, cls: p === board[0] ? 'lg' : 'md' })}<b>${esc(p.name)}</b><span class="num">${fmt(p.score)}</span></div>`).join('')}</div>${board.length > 3 ? `<div class="rest">${board.slice(3).map((p, i) => `<span>${i + 4}. ${esc(p.name)} <b class="num">${fmt(p.score)}</b></span>`).join('')}</div>` : ''}</div>`;
       if (prevPhase !== 'final') confetti([board[0]?.color || '#e8b23f', '#f6eedc', '#e8b23f']);
+      return;
+    }
+    if (PARTY_TV.includes(g.kind)) {
+      el.innerHTML = top + partyView(g, prevPhase, { timer, teamsLine });
+      if (g.phase === 'reveal' && prevPhase !== 'reveal') {
+        const x = g.x, hit = g.kind === 'most-likely' ? x.winners?.[0] : g.kind === 'mind-reader' ? (x.right?.length ? x.spot.id : null) : (x.winners?.[0] && x.entries.find(e => e.id === x.winners[0])?.author);
+        if (hit && hit !== 'elf') confetti([who(hit).color || '#e8b23f', '#f6eedc', '#e8b23f'], 110);
+      }
       return;
     }
     if (g.kind === 'trivia' && g.hotSeat && g.turn) {

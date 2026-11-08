@@ -4,6 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { previewFor } from './previews.mjs';
+import { PARTY_KINDS, partyMethods } from './party.mjs';
 
 // one colour per person when everyone plays for themselves
 export const PLAYER_COLORS = ['#d6312b', '#1f9a52', '#e0a92e', '#3a7be0', '#b45ad8', '#e8743b', '#2bb3b1', '#d94f8c'];
@@ -144,14 +145,17 @@ export class Games {
   }
 
   start(kind, opts = {}) {
-    if (!['trivia', 'name-that-song', 'would-you-rather', 'pictionary'].includes(kind)) throw new Error('Unknown game');
+    if (!['trivia', 'name-that-song', 'would-you-rather', 'pictionary', ...PARTY_KINDS].includes(kind)) throw new Error('Unknown game');
+    // the family games always play for yourself, whatever the team switch says
+    const party = PARTY_KINDS.includes(kind) ? this.partySetup(kind, opts) : null;
     this.clear();
     this.stopGameAudio();
     this.app.lights.clearOverlays();
     this.secret = {};
     if (opts.resetScores !== false) this.resetScores();
     this.streak = {};
-    this.g = { kind, phase: 'lobby', round: 0, total: opts.rounds || ({ trivia: 10, 'name-that-song': 8, 'would-you-rather': 8, pictionary: 6 })[kind] || 8, opts, startedAt: Date.now(), solo: this.solo() };
+    this.g = { kind, phase: 'lobby', round: 0, total: opts.rounds || ({ trivia: 10, 'name-that-song': 8, 'would-you-rather': 8, pictionary: 6 })[kind] || 8, opts, startedAt: Date.now(), solo: this.solo() || !!party };
+    if (party) this.g = { ...this.g, ...party };
     if (kind === 'trivia' && this.hotSeat()) {
       // everyone gets the same number of turns, in a shuffled order
       const order = shuffle([...this.players.values()].filter(p => p.local).map(p => p.id));
@@ -171,6 +175,7 @@ export class Games {
     else if (g.kind === 'name-that-song') this.songRound();
     else if (g.kind === 'would-you-rather') this.wyrRound();
     else if (g.kind === 'pictionary') this.pictRound();
+    else if (PARTY_KINDS.includes(g.kind)) this.partyRound();
   }
   final() {
     this.clear();
@@ -206,6 +211,7 @@ export class Games {
   }
   turnReady(round) {
     const g = this.g;
+    if (g?.kind === 'mind-reader') return this.mrReady(round);
     if (!g || g.kind !== 'trivia' || g.phase !== 'turn' || (round !== undefined && round !== g.round)) return;
     this.triviaQuestion({ seconds: g.opts.seconds || 20 });
   }
@@ -522,3 +528,5 @@ export class Games {
     else if (m.type === 'cheer') this.app.lights.overlay({ kind: 'flash', color: teamOf(this.players.get(pid)?.team).color, dur: 0.6 });
   }
 }
+
+Object.assign(Games.prototype, partyMethods);

@@ -12,6 +12,7 @@ import { createRequire } from 'node:module';
 import { attachWebSocket } from './ws.mjs';
 import { Lights } from './lights.mjs';
 import { Games, TEAMS } from './games.mjs';
+import { PARTY_KINDS } from './party.mjs';
 import { AlexaBridge, lanIp } from './alexa.mjs';
 import { AI } from './claude.mjs';
 import { Roku } from './roku.mjs';
@@ -77,6 +78,9 @@ const content = {
   pictionary: readJson('content/pictionary.json', []),
   charades: readJson('content/charades.json', []),
   wyr: readJson('content/would-you-rather.json', []),
+  mostLikely: readJson('content/most-likely.json', ['hide the last cookie']),
+  mindReader: readJson('content/mind-reader.json', [{ a: 'Hot cocoa', b: 'Apple cider' }]),
+  captions: readJson('content/captions.json', [{ scene: 'Santa is stuck in the chimney.', ask: 'What does he yell?' }]),
   elf: readJson('content/elf-names.json', { first: ['Jingle'], last: ['McSparkle'], jobs: ['Head of Bows'] }),
   nice: readJson('content/nice-list.json', { nice: ['Nice list confirmed.'], borderline: [] }),
   advent: readJson('content/advent.json', []),
@@ -632,7 +636,12 @@ const actions = {
 
   'game.start'(a) { app.games.start(a.kind, a); return { ok: true, joinUrl: joinUrl() }; },
   'game.next'(a) { const g = state.game; if (g && a.round !== undefined && (a.round !== g.round || a.phase !== g.phase)) return { ok: true, ignored: true }; app.games.next(); return { ok: true }; },
-  'game.reveal'(a) { const g = state.game; if (g && a.round !== undefined && a.round !== g.round) return { ok: true, ignored: true }; if (g?.kind === 'trivia') app.games.triviaReveal(); else if (g?.kind === 'pictionary') app.games.pictReveal(); else if (g?.kind === 'would-you-rather') app.games.wyrReveal(); else if (g?.kind === 'name-that-song') app.games.songReveal(null); return { ok: true }; },
+  'game.reveal'(a) { const g = state.game; if (g && a.round !== undefined && a.round !== g.round) return { ok: true, ignored: true }; if (g?.kind === 'trivia') app.games.triviaReveal(); else if (g?.kind === 'pictionary') app.games.pictReveal(); else if (g?.kind === 'would-you-rather') app.games.wyrReveal(); else if (g?.kind === 'name-that-song') app.games.songReveal(null); else if (g && PARTY_KINDS.includes(g.kind)) app.games.partyReveal(); return { ok: true }; },
+  // family games (server/party.mjs): ballot = a vote for a person (Most Likely To) or a caption (Caption Chaos)
+  'game.ballot'(a) { const g = state.game, pid = String(a.pid), t = String(a.target); if (g?.kind === 'most-likely') app.games.mlVote(pid, t); else if (g?.kind === 'caption-chaos') app.games.capVote(pid, t); return { ok: true }; },
+  'game.caption'(a) { app.games.capSubmit(String(a.pid), a.text, !!a.skip); return { ok: true }; },
+  'game.pickSide'(a) { app.games.mrPick(String(a.pid), String(a.side)); return { ok: true }; },
+  'game.guessSide'(a) { app.games.mrGuess(String(a.pid), String(a.side)); return { ok: true }; },
   'game.end'() { app.games.end(); return { ok: true }; },
   'game.kick'(a) { app.games.kick(a.id); return { ok: true }; },
   // pass-the-iPad play: the iPad acts for whichever person is holding it
