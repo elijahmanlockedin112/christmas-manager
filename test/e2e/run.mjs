@@ -16,7 +16,7 @@ fs.rmSync(DATA, { recursive: true, force: true });
 const only = (process.env.ONLY || '').split(',').filter(Boolean);
 const want = k => !only.length || only.includes(k);
 
-const srv = spawn(process.execPath, ['server/index.mjs'], { cwd: ROOT, env: { ...process.env, PORT: String(PORT), XM_DATA: DATA, XM_HUE_PORT: '0', XM_PREVIEWS: '0' }, stdio: ['ignore', 'pipe', 'pipe'] });
+const srv = spawn(process.execPath, ['server/index.mjs'], { cwd: ROOT, env: { ...process.env, PORT: String(PORT), XM_DATA: DATA, XM_HUE_PORT: '0', XM_PREVIEWS: '0', XM_FAKE_AI: '1', XM_FAKE_AI_MS: '3500', XM_WORKSHOP_REVEAL_MS: '5000' }, stdio: ['ignore', 'pipe', 'pipe'] });
 let srvLog = '';
 srv.stdout.on('data', d => (srvLog += d)); srv.stderr.on('data', d => (srvLog += d));
 for (let i = 0; i < 40; i++) { try { await fetch(`${BASE}/api/state`); break; } catch { await sleep(200); } }
@@ -139,6 +139,63 @@ try {
   await ipad.tap('#gEnd'); await sleep(500);
   check('ending the game brings the tree back', await ipad.eval(`!document.body.classList.contains('gamemode')`));
   await ipad.tap('.tab[data-tab="games"]'); await sleep(200);
+
+  // ---------- Elf Workshop: type a request on the iPad, watch the TV build it, play it, replay it ----------
+  if (want('workshop')) {
+    const until = async (fn, ms = 9000) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { if (await fn()) return true; await sleep(150); } return false; };
+    await ipad.tap('.tab[data-tab="games"]'); await sleep(300);
+    check('Workshop: the Elf Workshop box sits at the top of the Games tab', await ipad.eval(`document.querySelector('[data-view=games]').firstElementChild?.id === 'wsBox' && document.querySelectorAll('#wsBox .ws-chip').length === 6`));
+    await ipad.shot(path.join(OUT, 'ipad-workshop.png'));
+    await ipad.tap('[data-ex="Would you rather, but only food"]');
+    check('Workshop: an example chip fills the box', await ipad.eval(`document.querySelector('#wsReq').value === 'Would you rather, but only food'`));
+    await ipad.eval(`document.querySelector('#wsReq').value = ''`);
+    await ipad.tap('#wsReq');
+    await ipad.type('Trivia about the North Pole');
+    check('Workshop: typing in the box works', await ipad.eval(`document.activeElement.id === 'wsReq' && document.querySelector('#wsReq').value === 'Trivia about the North Pole'`));
+    // a state update that rebuilds the Games tab (a photo changed) must not steal the keyboard or wipe the text
+    await act('game.photo', { pid: dadId, photo: jpeg }); await sleep(700);
+    check('Workshop: a state update while typing keeps the focus and the text', await ipad.eval(`document.activeElement.id === 'wsReq' && document.querySelector('#wsReq').value === 'Trivia about the North Pole'`));
+    await ipad.tap(`[data-by="${dadId}"]`);
+    check('Workshop: tapping a face marks who is asking', await ipad.eval(`document.querySelector('[data-by="${dadId}"]').classList.contains('on') && document.querySelector('#wsReq').value.length > 0`));
+    // family facts
+    await ipad.tap('#wsFactsIn'); await ipad.type('Dad plays golf on Sundays');
+    await ipad.tap('#wsFactsSave'); await sleep(500);
+    st = await state();
+    check('Workshop: family facts are saved', JSON.stringify(st.workshop.facts) === JSON.stringify(['Dad plays golf on Sundays']));
+    await ipad.tap('#wsBuild'); await sleep(500);
+    st = await state();
+    check('Workshop: Build starts the elves and returns at once', st.workshop.phase === 'building' && st.workshop.request === 'Trivia about the North Pole' && st.workshop.by?.name === 'Dad', JSON.stringify(st.workshop).slice(0, 160));
+    check('Workshop: the Build button shows a busy state', await ipad.eval(`document.querySelector('#wsBuild').disabled && document.querySelector('#wsBuild').textContent === 'Building…' && document.querySelector('#wsReq').value === ''`));
+    check('Workshop: a second request is turned down while the elves are busy', !!(await act('workshop.build', { request: 'another game please' })).error);
+    check('Workshop TV: request in big type over the conveyor', await tv.eval(`document.querySelector('.workshop.on .wk-req')?.textContent.includes('Trivia about the North Pole') && !!document.querySelector('.workshop .wk-belt .wk-box') && document.querySelector('#wkStage').textContent.length > 3 && document.querySelector('.workshop .wk-by')?.textContent.includes('Dad')`));
+    await tvLook('tv-workshop-building.png');
+    await ipad.shot(path.join(OUT, 'ipad-workshop-building.png'));
+    check('Workshop: the build finishes into a title card reveal', await until(async () => (await state()).workshop.phase === 'reveal'));
+    await sleep(900);
+    check('Workshop TV: title card with tagline, game type and who asked', await tv.eval(`document.querySelector('.workshop .wk-title')?.textContent === 'Trivia about the North Pole Showdown' && document.querySelector('.workshop .wk-eng b')?.textContent === 'Trivia Showdown' && document.querySelector('.workshop .wk-by')?.textContent.includes('Dad')`));
+    await tvLook('tv-workshop-reveal.png');
+    check('Workshop: the game lobby starts after the reveal', await until(async () => { const g = (await state()).game; return g?.kind === 'trivia' && g.opts?.custom?.title; }, 12000));
+    st = await state();
+    check('Workshop: custom answers never leave the server', !JSON.stringify(st).includes('red nose') && !st.game.opts.custom.items);
+    await ipad.tap('#gNext'); await sleep(500);
+    await ipad.tap('#seatGo'); await sleep(800);
+    st = await state();
+    check('Workshop: the custom game plays a round from the custom questions', st.game.phase === 'question' && /Santa|tree|candy|North Pole|leave out|Christmas/.test(st.game.q) && st.game.choices.length === 4, st.game.q);
+    await ipad.tap('[data-ans="0"]'); await sleep(2200);
+    check('Workshop: the round reveals', (await state()).game.phase === 'reveal');
+    await ipad.tap('#gEnd'); await sleep(500);
+    await ipad.tap('.tab[data-tab="games"]'); await sleep(400);
+    check('Workshop: it is listed under Made by the elves', await ipad.eval(`document.querySelectorAll('#wsMade [data-wplay]').length === 1 && document.querySelector('#wsMade .t').textContent === 'Trivia about the North Pole Showdown'`));
+    await ipad.shot(path.join(OUT, 'ipad-workshop-made.png'));
+    await ipad.tap('[data-wplay]'); await sleep(700);
+    st = await state();
+    check('Workshop: Play replays the saved game with no AI call', st.game?.kind === 'trivia' && st.game.opts.custom.title === 'Trivia about the North Pole Showdown');
+    await ipad.tap('#gEnd'); await sleep(500);
+    await ipad.tap('.tab[data-tab="games"]'); await sleep(300);
+    await ipad.tap('[data-wdel]'); await ipad.tap('[data-wdel]'); await sleep(500);
+    check('Workshop: delete asks twice, then removes the game', (await state()).workshop.games.length === 0 && await ipad.eval(`document.querySelectorAll('#wsMade [data-wplay]').length === 0`));
+    await act('workshop.facts', { facts: [] });
+  }
 
   // ---------- family games: real taps on the iPad, the TV shows the board ----------
   const fp = (await state()).players, [gma, dad, lily] = ['Grandma', 'Dad', 'Lily'].map(n => fp.find(p => p.name === n).id);

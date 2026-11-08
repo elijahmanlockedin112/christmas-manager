@@ -304,6 +304,20 @@ test('Party / Goodnight / YuleLog / Radio', async () => {
   assert.deepEqual(x.calls, [['radio.play', { channel: 'jollysoul' }]]);
 });
 
+test('BuildGameIntent starts the workshop and answers inside Alexa\'s window; errors are spoken', async () => {
+  const x = await run('BuildGameIntent', { request: slot('request', 'christmas movies') });
+  assert.deepEqual(x.calls, [['workshop.build', { request: 'christmas movies', by: 'Alexa' }]]);
+  assert.match(x.s, /elves are building it now\. Look at the TV/);
+  assert.equal(x.r.response.shouldEndSession, true);
+  const none = await run('BuildGameIntent');
+  assert.deepEqual(none.calls, []);
+  assert.equal(none.r.response.shouldEndSession, false);
+  const busy = await run('BuildGameIntent', { request: slot('request', 'snowmen') }, (a) => { a.act = async () => { throw new Error('The elves are still building the last game.'); }; });
+  assert.match(busy.s, /still building the last game/);
+  const slow = await run('BuildGameIntent', { request: slot('request', 'snowmen') }, (a) => { a.act = () => new Promise(() => { }); });
+  assert.match(slow.s, /Look at the TV/);
+});
+
 test('action failure gives a friendly spoken error', async () => {
   const x = await run('TreeOnIntent', {}, (a) => { a.act = async () => { throw new Error('lights offline'); }; });
   assert.match(x.s, /elf tripped/);

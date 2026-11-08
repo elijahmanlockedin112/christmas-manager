@@ -407,6 +407,80 @@ function bindRoster(v) {
   v.querySelectorAll('[data-del]').forEach(b => (b.onclick = () => act('game.kick', { id: b.dataset.del })));
   $('#phonesSw').onclick = () => act('settings.set', { phones: !S.settings.phones });
 }
+// ---------------- Elf Workshop (top of the Games tab) ----------------
+// Built once and moved into the Games tab each time it is redrawn, so a half-typed request survives (and the
+// iPad keyboard never loses its field). Only the status, faces and lists are updated in place.
+const WS_EXAMPLES = ['Trivia about our family', 'Would you rather, but only food', 'Name that song: 2000s Christmas pop', 'Most likely to, cousins edition', 'Pictionary words from Elf the movie', 'Caption chaos at the North Pole'];
+const WS_STAGES = ['Reading your request', 'Picking the right game', 'Writing the rounds', 'Checking every answer', 'Wrapping it up'];
+ui.ws = { by: null, sig: {}, confirm: null, factsDirty: false };
+let wsEl = null;
+function wsBox() {
+  if (wsEl) return wsEl;
+  wsEl = h('div', { class: 'sec ws', id: 'wsBox' });
+  wsEl.innerHTML = `<div class="sec-head"><h2>Elf Workshop</h2><span class="aside">Describe any game. The elves build it.</span></div>
+    <div class="ws-card">
+      <textarea id="wsReq" rows="3" maxlength="200" placeholder="Tell the elves what game to make…" autocomplete="off" autocapitalize="sentences" enterkeyhint="done"></textarea>
+      <div class="ws-ex">${WS_EXAMPLES.map(t => `<button type="button" class="ws-chip" data-ex="${esc(t)}">${esc(t)}</button>`).join('')}</div>
+      <div class="ws-asking"><span class="ws-lbl">Who is asking?</span><div class="ws-who" id="wsWho"></div></div>
+      <div class="ws-go"><button type="button" class="btn primary" id="wsBuild">Build it</button><span class="ws-status" id="wsStatus" role="status"></span></div>
+      <p class="hint ws-note" id="wsNote"></p>
+    </div>
+    <div id="wsMade"></div>
+    <div class="ws-facts"><div class="ws-lbl">Family facts <span class="muted" id="wsFactCount"></span></div>
+      <p class="hint">One per line. The elves use only these when a game is about your family, like “Bryson plays point guard”.</p>
+      <textarea id="wsFactsIn" rows="4" placeholder="Crystal's dog is named Biscuit" autocomplete="off"></textarea>
+      <div class="btns mt"><button type="button" class="btn sm light" id="wsFactsSave">Save facts</button><span class="ws-status" id="wsFactsMsg"></span></div></div>`;
+  const req = wsEl.querySelector('#wsReq');
+  wsEl.querySelectorAll('[data-ex]').forEach(b => (b.onclick = () => { req.value = b.dataset.ex; req.focus(); }));
+  wsEl.querySelector('#wsWho').onclick = e => { const b = e.target.closest('[data-by]'); if (!b) return; ui.ws.by = ui.ws.by === b.dataset.by ? null : b.dataset.by; ui.ws.sig.who = ''; updateWorkshop(); };
+  wsEl.querySelector('#wsBuild').onclick = async () => {
+    const request = req.value.trim();
+    if (request.length < 3) { toast('Tell the elves what game to make', true); req.focus(); return; }
+    try { await act('workshop.build', { request, by: ui.ws.by || undefined }, 'The elves are on it. Look at the TV!'); req.value = ''; } catch { }
+  };
+  wsEl.querySelector('#wsMade').onclick = async e => {
+    const b = e.target.closest('[data-wplay],[data-wdel]'); if (!b) return;
+    if (b.dataset.wplay) { ui.secretWord = null; try { await act('workshop.play', { id: b.dataset.wplay }); } catch { } return; }
+    const id = b.dataset.wdel;
+    if (ui.ws.confirm !== id) { ui.ws.confirm = id; ui.ws.sig.made = ''; updateWorkshop(); setTimeout(() => { if (ui.ws.confirm === id) { ui.ws.confirm = null; ui.ws.sig.made = ''; updateWorkshop(); } }, 3500); return; }
+    ui.ws.confirm = null; try { await act('workshop.delete', { id }); } catch { }
+  };
+  const facts = wsEl.querySelector('#wsFactsIn');
+  facts.oninput = () => { ui.ws.factsDirty = true; wsEl.querySelector('#wsFactsMsg').textContent = ''; };
+  wsEl.querySelector('#wsFactsSave').onclick = async () => {
+    try { const r = await act('workshop.facts', { facts: facts.value }); ui.ws.factsDirty = false; facts.value = r.facts.join('\n'); wsEl.querySelector('#wsFactsMsg').textContent = `Saved ${r.facts.length}`; } catch { }
+  };
+  return wsEl;
+}
+function updateWorkshop() {
+  if (!S || !wsEl) return;
+  const w = S.workshop || { phase: 'idle', games: [], facts: [] };
+  const sig = ui.ws.sig, set = (k, v) => (sig[k] === v ? false : (sig[k] = v, true));
+  const building = w.phase === 'building' || w.phase === 'reveal';
+  const btn = wsEl.querySelector('#wsBuild');
+  btn.disabled = building; btn.classList.toggle('busy', building);
+  btn.textContent = building ? 'Building…' : 'Build it';
+  const st = wsEl.querySelector('#wsStatus');
+  st.className = `ws-status${w.phase === 'error' ? ' err' : ''}`;
+  st.textContent = w.phase === 'building' ? `${WS_STAGES[Math.min(w.stage || 0, WS_STAGES.length - 1)]}…` : w.phase === 'reveal' ? `${w.game?.title || 'Your game'} is ready. Look at the TV!` : w.phase === 'error' ? w.error || 'The elves hit a snag.' : '';
+  const note = wsEl.querySelector('#wsNote');
+  note.textContent = S.ai?.configured ? '' : 'The elves need the Claude key from Setup before they can build a new game.';
+  note.hidden = !!S.ai?.configured;
+  if (set('who', JSON.stringify([S.players.map(p => [p.id, p.name, p.photo, p.color]), ui.ws.by]))) {
+    if (ui.ws.by && !S.players.some(p => p.id === ui.ws.by)) ui.ws.by = null;
+    wsEl.querySelector('#wsWho').innerHTML = S.players.length
+      ? S.players.map(p => `<button type="button" class="ws-face${ui.ws.by === p.id ? ' on' : ''}" data-by="${p.id}" aria-pressed="${ui.ws.by === p.id}">${face(p, 46)}<span>${esc(p.name)}</span></button>`).join('')
+      : '<span class="muted">Add players below to tag who asked.</span>';
+  }
+  if (set('made', JSON.stringify([w.games, building, !S.players.length, ui.ws.confirm]))) {
+    wsEl.querySelector('#wsMade').innerHTML = w.games?.length
+      ? `<div class="ws-lbl" style="margin:18px 0 6px">Made by the elves</div><div class="rows">${w.games.map(g => `<div class="row big"><div class="grow"><div class="t">${esc(g.title)}</div><div class="s">${esc(g.engineName)} · ${g.count} rounds${g.by ? ' · ' + esc(g.by) : ''}</div></div><button type="button" class="btn sm primary" data-wplay="${g.id}"${building || !S.players.length ? ' disabled' : ''}>Play</button><button type="button" class="btn sm ghost${ui.ws.confirm === g.id ? ' warn' : ''}" data-wdel="${g.id}" aria-label="Delete ${esc(g.title)}">${ui.ws.confirm === g.id ? 'Delete?' : icon('x')}</button></div>`).join('')}</div>`
+      : '';
+  }
+  const fi = wsEl.querySelector('#wsFactsIn');
+  if (set('facts', JSON.stringify(w.facts)) && document.activeElement !== fi && !ui.ws.factsDirty) fi.value = (w.facts || []).join('\n');
+  wsEl.querySelector('#wsFactCount').textContent = `${(w.facts || []).length} of 40`;
+}
 function renderGames(force) {
   if (!S) return;
   const g = S.game;
@@ -415,15 +489,21 @@ function renderGames(force) {
   lastGameSig = sig;
   if (g && DRAW.includes(g.kind) && di().live(g)) return; // never rebuild the panel under a pencil
   const v = $('[data-view=games]');
+  // typing in the workshop box: leave the whole panel alone (the box updates itself in place)
+  if (!g && wsEl && v.contains(wsEl) && wsEl.contains(document.activeElement)) { lastGameSig = ''; return; }
   const typing = document.activeElement?.id === 'newName' ? $('#newName').value : null;
   if (g?.kind === 'pictionary' && g.phase === 'draw' && $('#drawpad')) { renderHostBits(); return; }
   if (!g) {
     v.innerHTML = `
+      <div id="wsSlot"></div>
       <div class="sec"><div class="sec-head"><h2>Game night</h2><span class="aside">Board on the TV, play on this iPad</span></div>
         <div class="rows game-list">${GAMES.map(([id, name, blurb, ic]) => `<div class="row big"><div class="lead">${icon(ic)}</div><div class="grow"><div class="t">${name}</div><div class="s" style="white-space:normal">${blurb}${id === 'name-that-song' ? (S.alexa?.ready ? ' Plays on the Echo.' : ' Plays real song clips on the TV.') : ''}</div></div><button class="btn primary" data-start="${id}"${S.players.length ? '' : ' disabled'}>Start</button></div>`).join('')}
         <div class="row big"><div class="lead">${icon('people')}</div><div class="grow"><div class="t">Charades</div><div class="s" style="white-space:normal">Hold the iPad (or a phone) on your forehead while the family acts it out.</div></div><a class="btn" href="/charades" target="_blank">Open</a></div></div>
       </div>
       <div class="sec"><div class="sec-head"><h2>Players</h2><span class="aside">${S.players.length} playing</span></div>${rosterHtml()}</div>`;
+    $('#wsSlot').replaceWith(wsBox());
+    ui.ws.sig = {};
+    updateWorkshop();
     bindRoster(v);
   } else {
     // game mode: the whole iPad is the game (no tree, no tabs); the roster only shows before it starts
@@ -1097,7 +1177,7 @@ function render() {
   }
   if (ui.tab === 'lights') renderLights();
   if (ui.tab === 'music') renderMusic();
-  if (ui.tab === 'games') renderGames();
+  if (ui.tab === 'games') { renderGames(); if (!S.game) updateWorkshop(); }
   if (ui.tab === 'fun') { renderFun(); renderAi(); }
   if (ui.tab === 'tv') renderTv();
   if (ui.tab === 'setup') { renderSetup(); renderChecklist(); }

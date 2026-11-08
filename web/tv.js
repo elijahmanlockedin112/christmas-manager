@@ -533,6 +533,47 @@ scene('ai', {
   },
 });
 
+// ELF WORKSHOP: the family asked for a game. While Haiku builds it the request sits in big type over a conveyor of
+// wrapped boxes; then a title card reveals the game and the lobby starts (server/workshop.mjs drives the phases).
+const WK_STAGES = ['Reading your request', 'Picking the right game', 'Writing the rounds', 'Checking every answer', 'Wrapping it up'];
+const WK_COLORS = [['#d6312b', '#f6eedc'], ['#24a35a', '#e8b23f'], ['#e8b23f', '#d6312b'], ['#f6eedc', '#24a35a'], ['#d6312b', '#e8b23f'], ['#24a35a', '#f6eedc']];
+const wkBox = (i) => { const [body, rib] = WK_COLORS[i % WK_COLORS.length]; return `<g class="wk-box" style="animation-delay:${-i * 2.1}s"><rect x="0" y="-58" width="64" height="58" rx="3" fill="${body}"/><rect x="26" y="-58" width="12" height="58" fill="${rib}"/><rect x="0" y="-36" width="64" height="11" fill="${rib}"/><path d="M32 -58 C 18 -82 6 -70 22 -60 Z M32 -58 C 46 -82 58 -70 42 -60 Z" fill="${rib}"/></g>`; };
+const WK_BELT = `<svg class="wk-belt" viewBox="0 0 1200 150" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+  <g transform="translate(0 112)">${[0, 1, 2, 3, 4, 5].map(wkBox).join('')}</g>
+  <rect x="0" y="116" width="1200" height="16" rx="8" fill="#1a2a20" stroke="#e8b23f" stroke-opacity=".45"/>
+  ${Array.from({ length: 17 }, (_, i) => `<circle class="wk-roll" cx="${40 + i * 72}" cy="124" r="5" fill="#e8b23f"/>`).join('')}
+  <g class="wk-gift" transform="translate(1088 112)"><rect x="0" y="-70" width="96" height="70" rx="4" fill="#24a35a"/><rect x="40" y="-70" width="16" height="70" fill="#e8b23f"/><g class="wk-lid"><rect x="-6" y="-92" width="108" height="24" rx="4" fill="#1d7f46"/><rect x="40" y="-92" width="16" height="24" fill="#e8b23f"/><path d="M48 -92 C 24 -128 4 -108 30 -94 Z M48 -92 C 72 -128 92 -108 66 -94 Z" fill="#e8b23f"/></g></g>
+  ${[[1010, 60], [1150, 36], [960, 24], [1180, 78]].map(([x, y], i) => `<path class="wk-spark" style="animation-delay:${i * 0.45}s" transform="translate(${x} ${y})" d="M0 -9 L2.4 -2.4 L9 0 L2.4 2.4 L0 9 L-2.4 2.4 L-9 0 L-2.4 -2.4 Z" fill="#f6eedc"/>`).join('')}
+</svg>`;
+const wkBy = by => { if (!by) return ''; const p = by.id && person(by.id) || { name: by.name, color: '#e8b23f' }; return `<div class="wk-by">${avatar(p, { cls: 'sm' })}<span>Requested by <b>${esc(by.name)}</b></span></div>`; };
+scene('workshop', {
+  cls: 'workshop',
+  update() {
+    const w = S.workshop; if (!w || w.phase === 'idle') return;
+    const key = JSON.stringify([w.phase, w.request, w.game?.id, w.error, w.by, S.players.map(p => p.id + p.photo)]);
+    if (key !== this.key) {
+      const first = this.phase !== w.phase;
+      this.key = key; this.phase = w.phase;
+      if (w.phase === 'building') {
+        const n = (w.request || '').length;
+        this.el.innerHTML = `<div class="wk"><div class="kick">The Elf Workshop</div><div class="wk-req ${n > 90 ? 'xs' : n > 45 ? 'sm' : ''}">&ldquo;${esc(w.request)}&rdquo;</div>${wkBy(w.by)}</div>${WK_BELT}<div class="wk-stage"><span id="wkStage"></span><i class="wk-pips">${WK_STAGES.map(() => '<b></b>').join('')}</i></div>`;
+        this.stage = -1;
+      } else if (w.phase === 'reveal' && w.game) {
+        this.el.innerHTML = `<div class="wk reveal"><div class="kick">Fresh from the workshop</div><h1 class="wk-title">${esc(w.game.title)}</h1>${w.game.tagline ? `<div class="wk-tag">${esc(w.game.tagline)}</div>` : ''}<div class="wk-eng"><b>${esc(w.game.engineName)}</b><span>${w.game.count} rounds ready</span></div>${wkBy(w.by)}</div>`;
+        if (first) confetti(['#e8b23f', '#f6eedc', '#d6312b', '#24a35a'], 170);
+      } else if (w.phase === 'error') {
+        this.el.innerHTML = `<div class="wk"><div class="kick">The Elf Workshop</div><div class="wk-req sm">The elves hit a snag</div><div class="wk-tag">${esc(w.error || 'Try again in a moment.')}</div></div>`;
+      }
+    }
+    if (w.phase === 'building' && this.stage !== w.stage) {
+      this.stage = w.stage;
+      const el = this.el.querySelector('#wkStage');
+      if (el) el.textContent = `${WK_STAGES[Math.min(w.stage, WK_STAGES.length - 1)]}…`;
+      this.el.querySelectorAll('.wk-pips b').forEach((b, i) => b.classList.toggle('on', i <= w.stage));
+    }
+  },
+});
+
 // NICE LIST WALL: everyone scanned tonight
 scene('nicelist', {
   cls: 'nicewall',
@@ -814,6 +855,7 @@ function update() {
   if (id === 'game' && !S.game) id = S.tv.prev || 'home';
   if (id === 'show' && !S.show.playing) id = S.tv.prev || 'home';
   if (id === 'joke' && !S.joke) id = 'home';
+  if (id === 'workshop' && (!S.workshop || S.workshop.phase === 'idle')) id = S.tv.prev || 'home';
   if (!scenes[id]) id = 'home';
   show(id);
   scenes[id].update?.();

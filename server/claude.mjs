@@ -8,7 +8,31 @@ import Anthropic from '@anthropic-ai/sdk';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { z } from 'zod';
 
-export const MODEL = 'claude-haiku-5-5';
+import { ENGINES, ENGINE_IDS, MIN_ITEMS, cleanItems, cleanFacts } from './workshop.mjs';
+import { previewFor } from './previews.mjs';
+
+// One schema per game type, tied together by "engine". The numbers and lengths are checked after parsing
+// (cleanItems), because the structured-output schema can't express them.
+const triviaItem = z.object({ q: z.string(), choices: z.array(z.string()), answer: z.number().int(), fact: z.string(), category: z.string(), difficulty: z.number().int() });
+const pairItem = z.object({ a: z.string(), b: z.string() });
+const sceneItem = z.object({ scene: z.string(), ask: z.string() });
+const wordItem = z.object({ word: z.string(), level: z.number().int() });
+const songItem = z.object({ title: z.string(), artist: z.string(), year: z.number().int() });
+const gameHead = { title: z.string().describe('a fun game title, max 40 characters'), tagline: z.string().describe('one short line, max 90 characters') };
+const GAME_SCHEMA = z.object({
+  game: z.discriminatedUnion('engine', [
+    z.object({ engine: z.literal('trivia'), ...gameHead, items: z.array(triviaItem) }),
+    z.object({ engine: z.literal('most-likely'), ...gameHead, items: z.array(z.string()) }),
+    z.object({ engine: z.literal('mind-reader'), ...gameHead, items: z.array(pairItem) }),
+    z.object({ engine: z.literal('caption-chaos'), ...gameHead, items: z.array(sceneItem) }),
+    z.object({ engine: z.literal('would-you-rather'), ...gameHead, items: z.array(pairItem) }),
+    z.object({ engine: z.literal('pictionary'), ...gameHead, items: z.array(wordItem) }),
+    z.object({ engine: z.literal('telephone'), ...gameHead, items: z.array(z.string()) }),
+    z.object({ engine: z.literal('name-that-song'), ...gameHead, items: z.array(songItem) }),
+  ]),
+});
+
+export const MODEL ='claude-haiku-5-5';
 // USD per 1M tokens. Source: Claude API model table, cached 2026-10-06 (prompts up to 100K tokens).
 // Cache read/write for Haiku 5.5 aren't in that table; estimated at the usual 0.1x / 1.25x of input.
 export const PRICES = { date: '2026-10-06', [MODEL]: { input: 0.10, output: 0.50, cacheRead: 0.01, cacheWrite: 0.125 } };
@@ -150,6 +174,48 @@ Write the review in 1 or 2 sentences (max 45 words) that read well out loud. Be 
     const prompt = png ? [{ type: 'image', source: { type: 'base64', media_type: 'image/png', data: Buffer.from(png).toString('base64') } }, { type: 'text', text }] : text;
     const out = await this.call({ feature: 'portrait-critic', schema: z.object({ review: z.string().describe('the critic\'s 1-2 sentence review, max 45 words, plain text') }), prompt, maxTokens: 300 });
     return out.review;
+  }
+  // Elf Workshop: one call picks the best engine for the request and writes the whole game in that engine's shape.
+  // Everything the model returns is validated again here (server/workshop.mjs cleanItems); bad items are dropped.
+  async buildGame({ request, players = [], facts = [], echoReady, findPreview }) {
+    request = String(request || '').replace(/\s+/g, ' ').trim().slice(0, 200);
+    if (!request) throw new Error('Tell the elves what game to make.');
+    const names = players.map(n => String(n).slice(0, 20)).slice(0, 8);
+    const notes = cleanFacts(facts);
+    const catalog = ENGINE_IDS.map(id => `- ${id} (${ENGINES[id].name}): each item is ${ENGINES[id].shape}`).join('\n');
+    const raw = await this.call({
+      feature: 'workshop',
+      schema: GAME_SCHEMA,
+      maxTokens: 2500,
+      prompt: `The family asks the elves to build this game: "${request}"
+Players in the room: ${names.join(', ') || '(not given)'}.
+${notes.length ? `Things the family told you about themselves (the ONLY facts you may use about them; never invent others):\n${notes.map(f => '- ' + f).join('\n')}` : 'You know nothing about the family beyond their names, so do not invent facts about them.'}
+
+Pick the ONE game type below that fits the request best, then write the game. Match the request's theme closely.
+${catalog}
+
+Rules:
+- "engine" must be exactly one of: ${ENGINE_IDS.join(', ')}.
+- "title": a fun game title, max 40 characters. "tagline": one short line, max 90 characters.
+- "items": 8 to 12 items, each in EXACTLY the shape of the chosen game type. No two items alike, nothing empty.
+- Trivia answers must be actually true and checkable. For questions about the family, use ONLY the facts listed above. If the request is about the family and there are no facts, ask about the players' names and Christmas in general instead.
+- Name That Song: only REAL, well-known Christmas or winter songs that were really recorded by that artist. Give 14 items so a few can be dropped.
+- Never be mean about a real person. Keep it fun for kids and grandparents.
+- Plain text only, no emoji.`,
+    });
+    const engine = String(raw?.game?.engine || '');
+    if (!ENGINES[engine]) throw new Error("The elves couldn't pick a game for that one. Try describing it a different way.");
+    let items = cleanItems(engine, raw.game.items);
+    if (engine === 'name-that-song' && !(echoReady ?? this.app.alexa?.ready)) {
+      // without the Echo the TV plays 30-second iTunes clips, so keep only the songs that really have one
+      const find = findPreview || (h => previewFor(h, { dataDir: this.app.dataDir, log: this.app.log }));
+      const found = await Promise.all(items.map(h => Promise.resolve(find(h)).then(Boolean, () => false)));
+      items = items.filter((_, i) => found[i]);
+    }
+    if (items.length < MIN_ITEMS) throw new Error("The elves couldn't make enough good rounds for that one. Try different words.");
+    const title = String(raw.game.title || '').replace(/\s+/g, ' ').trim().slice(0, 40).trim();
+    if (!title) throw new Error('The elves forgot to name the game. Try again.');
+    return { engine, title, tagline: String(raw.game.tagline || '').replace(/\s+/g, ' ').trim().slice(0, 100), items };
   }
   askSanta({ question, asker }) {
     return this.call({

@@ -14,7 +14,7 @@ fs.mkdirSync(OUT, { recursive: true });
 const PORT = 47949, BASE = `http://127.0.0.1:${PORT}`;
 const DATA = path.join(os.tmpdir(), 'np-overflow-data');
 fs.rmSync(DATA, { recursive: true, force: true });
-const srv = spawn(process.execPath, ['server/index.mjs'], { cwd: ROOT, env: { ...process.env, PORT: String(PORT), XM_DATA: DATA, XM_HUE_PORT: '0' }, stdio: 'ignore' });
+const srv = spawn(process.execPath, ['server/index.mjs'], { cwd: ROOT, env: { ...process.env, PORT: String(PORT), XM_DATA: DATA, XM_HUE_PORT: '0', XM_FAKE_AI: '1', XM_FAKE_AI_MS: '4000', XM_WORKSHOP_REVEAL_MS: '5000' }, stdio: 'ignore' });
 for (let i = 0; i < 40; i++) { try { await fetch(`${BASE}/api/state`); break; } catch { await sleep(200); } }
 const act = (n, a = {}) => fetch(`${BASE}/api/act/${n}`, { method: 'POST', body: JSON.stringify(a) }).then(r => r.json());
 const longest = (arr, f) => arr.slice().sort((a, b) => f(b).length - f(a).length)[0];
@@ -69,7 +69,7 @@ try {
   for (const [w, h] of sizes) {
     const p = await chrome.page(`${BASE}/tv`, { width: w, height: h, scale: 0.5 });
     await sleep(1500);
-    for (const [name, fn] of (process.env.PARTY_ONLY || process.env.DRAW_ONLY) ? [] : cases) {
+    for (const [name, fn] of (process.env.PARTY_ONLY || process.env.DRAW_ONLY || process.env.WORKSHOP_ONLY) ? [] : cases) {
       await fn(); await sleep(1300);
       const bad = await p.eval(AUDIT);
       await p.shot(path.join(OUT, `${w}-${name}.png`));
@@ -78,6 +78,18 @@ try {
     await act('show.stop');
     // games with real players
     for (const n of ['Grandma Rosemary', 'Uncle Bartholomew', 'Lily', 'Dad']) await act('game.addPlayer', { name: n }).catch(() => { });
+    // Elf Workshop: a short request, then a 200-character one with the longest player name asking
+    for (const [tag, request, by] of process.env.WORKSHOP_ONLY || !(process.env.PARTY_ONLY || process.env.DRAW_ONLY) ? [['short', 'Trivia about the North Pole', 'Dad'], ['long', 'Make it a trivia game all about our very own family, with questions about who snores the loudest, who burned the cookies last year, who always loses the tape, and who sings every carol way too loudly at dinner', 'Uncle Bartholomew']] : []) {
+      await act('workshop.build', { request, by }); await sleep(1500);
+      let bad = await p.eval(AUDIT); report.push(`${w}x${h} workshop-${tag}-building: ${bad.length ? bad.join(' | ') : 'ok'}`);
+      await p.shot(path.join(OUT, `${w}-workshop-${tag}-building.png`));
+      await sleep(3600);
+      bad = await p.eval(AUDIT); report.push(`${w}x${h} workshop-${tag}-reveal: ${bad.length ? bad.join(' | ') : 'ok'}`);
+      await p.shot(path.join(OUT, `${w}-workshop-${tag}-reveal.png`));
+      await sleep(4800);
+      await act('game.end'); await sleep(400);
+    }
+    if (process.env.WORKSHOP_ONLY) { p.close(); continue; }
     for (const kind of (process.env.PARTY_ONLY || process.env.DRAW_ONLY) ? [] : ['trivia', 'would-you-rather', 'name-that-song', 'pictionary']) {
       await act('game.start', { kind }); await sleep(500);
       let bad = await p.eval(AUDIT); report.push(`${w}x${h} ${kind}-lobby: ${bad.length ? bad.join(' | ') : 'ok'}`);

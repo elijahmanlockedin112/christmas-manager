@@ -16,6 +16,7 @@ import { PARTY_KINDS } from './party.mjs';
 import { DRAW_KINDS } from './draw-games.mjs';
 import { AlexaBridge, lanIp } from './alexa.mjs';
 import { AI } from './claude.mjs';
+import { Workshop } from './workshop.mjs';
 import { Roku } from './roku.mjs';
 import { EFFECTS, hasEffect } from '../shared/effects.mjs';
 import { buildTimeline, lightCue } from '../shared/song.mjs';
@@ -52,6 +53,7 @@ const DEFAULT_CONFIG = {
   hue: { enabled: true },
   alexaSkill: { appId: '' },
   ai: { capUsd: 5 },
+  workshop: { facts: [] },
   setupDone: {},
 };
 function deepMerge(base, over) {
@@ -132,6 +134,7 @@ app.lights = new Lights(app);
 app.games = new Games(app);
 app.alexa = new AlexaBridge(app);
 app.ai = new AI(app);
+app.workshop = new Workshop(app);
 app.roku = new Roku(app);
 app.roku.push();
 // find the TV at startup (read-only; never presses a key by itself)
@@ -637,7 +640,7 @@ const actions = {
   'secretsanta.draw'(a) { return drawSecretSanta(a.names || [], a.exclusions || []); },
   'secretsanta.reset'() { try { fs.unlinkSync(path.join(DATA, 'secret-santa.json')); } catch { } state.secretSanta = null; delete config.secretSanta; saveConfig(); app.changed(); return { ok: true }; },
 
-  'game.start'(a) { app.games.start(a.kind, a); return { ok: true, joinUrl: joinUrl() }; },
+  'game.start'(a) { app.games.start(a.kind, { ...a, custom: undefined }); return { ok: true, joinUrl: joinUrl() }; },
   'game.next'(a) { const g = state.game; if (g && a.round !== undefined && (a.round !== g.round || a.phase !== g.phase)) return { ok: true, ignored: true }; app.games.next(); return { ok: true }; },
   'game.reveal'(a) { const g = state.game; if (g && a.round !== undefined && a.round !== g.round) return { ok: true, ignored: true }; if (g?.kind === 'trivia') app.games.triviaReveal(); else if (g?.kind === 'pictionary') app.games.pictReveal(); else if (g?.kind === 'would-you-rather') app.games.wyrReveal(); else if (g?.kind === 'name-that-song') app.games.songReveal(null); else if (g && PARTY_KINDS.includes(g.kind)) app.games.partyReveal(); else if (g && DRAW_KINDS.includes(g.kind)) app.games.drawReveal(); return { ok: true }; },
   // drawing games (server/draw-games.mjs): the iPad hands in PNG data URLs; secrets come back as the answer to drawStart
@@ -759,6 +762,12 @@ const actions = {
     if (a.read !== false) alexaRead(/^\W*ho,? ho/i.test(answer) ? answer : `Ho ho ho! ${answer}`);
     return { ok: true, answer };
   },
+
+  // ---------- Elf Workshop (server/workshop.mjs): the family describes a game, Haiku builds it ----------
+  'workshop.build'(a) { return app.workshop.build({ request: a.request, by: a.by }); },
+  'workshop.play'(a) { return app.workshop.play(a.id); },
+  'workshop.delete'(a) { return app.workshop.delete(a.id); },
+  'workshop.facts'(a) { return app.workshop.setFacts(a.facts); },
 
   // ---------- setup checklist (manual ticks; the rest is detected live) ----------
   'setup.tick'(a) { config.setupDone = { ...config.setupDone, [String(a.id).slice(0, 30)]: !!a.done }; saveConfig(); app.changed(); return { ok: true }; },

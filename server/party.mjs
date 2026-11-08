@@ -71,7 +71,7 @@ export const partyMethods = {
 
   // ---------- Most Likely To ----------
   mlRound() {
-    const prompt = this.partyPick('most-likely', this.app.content.mostLikely);
+    const prompt = this.partyPick('most-likely', this.pool('mostLikely'));
     this.secret = { votes: {} };
     this.g = { ...this.g, phase: 'vote', x: { prompt, voted: [] } };
     this.app.sfx('question');
@@ -108,7 +108,7 @@ export const partyMethods = {
     const live = g.order.filter(id => this.players.has(id));
     if (!live.length) return this.final();
     const spot = this.pub(live[(g.round - 1) % live.length]);
-    const pair = this.partyPick('mind-reader', this.app.content.mindReader);
+    const pair = this.partyPick('mind-reader', this.pool('mindReader'));
     this.secret = { pair, pick: null, guesses: {} };
     this.g = { ...g, phase: 'turn', x: { spot, a: null, b: null, guessed: [] } };
     this.app.sfx('question');
@@ -150,7 +150,7 @@ export const partyMethods = {
 
   // ---------- Caption Chaos ----------
   capRound() {
-    const sc = this.partyPick('caption-chaos', this.app.content.captions);
+    const sc = this.partyPick('caption-chaos', this.pool('captions'));
     const secs = this.g.opts.seconds || 90;
     const round = this.g.round;
     this.secret = { captions: {}, elf: null, round, entryAuthor: {}, votes: {} };

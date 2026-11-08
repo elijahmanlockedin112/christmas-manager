@@ -341,7 +341,7 @@ export const drawMethods = {
     const g = this.g, step = g.round - 1;
     if (step === 0) {
       const ids = [...this.players.keys()];
-      const pool = this.app.content.telephone?.length ? this.app.content.telephone : ['Santa stuck in a chimney'];
+      const pool = this.pool('telephone')?.length ? this.pool('telephone') : ['Santa stuck in a chimney'];
       const used = this.used.draw.tp;
       const fresh = shuffle(pool.map((_, i) => i).filter(i => !used.has(i)));
       const picks = (fresh.length >= ids.length ? fresh : shuffle(pool.map((_, i) => i))).slice(0, ids.length);

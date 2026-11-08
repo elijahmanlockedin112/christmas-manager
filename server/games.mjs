@@ -55,6 +55,14 @@ export class Games {
     this.app.state.players = this.publicPlayers();
     this.syncOrnaments(); // the ornaments hung on the tree stay for the whole season
   }
+  // Where an engine gets its items: a custom Elf Workshop game brings its own (g.opts.custom.items, kept on the
+  // server only), otherwise the built-in content pool.
+  pool(name) {
+    const c = this.g?.opts?.custom;
+    return c && c.pool === name && Array.isArray(c.items) ? c.items : this.app.content[name];
+  }
+  // "already asked" memory: separate for custom games so their indexes never mix with the built-in pools'
+  usedOf(name) { return this.g?.opts?.custom ? (this.customUsed ||= {})[name] ||= new Set() : this.used[name]; }
   get g() { return this.app.state.game; }
   set g(v) { this.app.state.game = v; this.app.changed(); }
 
@@ -150,6 +158,8 @@ export class Games {
 
   start(kind, opts = {}) {
     if (!['trivia', 'name-that-song', 'would-you-rather', 'pictionary', ...PARTY_KINDS, ...DRAW_KINDS].includes(kind)) throw new Error('Unknown game');
+    if (opts.custom && (opts.custom.engine !== kind || !Array.isArray(opts.custom.items) || !opts.custom.items.length)) throw new Error('That custom game does not match this game type');
+    this.customUsed = {};
     // the family games always play for yourself, whatever the team switch says
     const party = PARTY_KINDS.includes(kind) ? this.partySetup(kind, opts) : DRAW_KINDS.includes(kind) ? this.drawSetup(kind, opts) : null;
     this.clear();
@@ -223,11 +233,11 @@ export class Games {
     this.triviaQuestion({ seconds: g.opts.seconds || 20 });
   }
   triviaQuestion({ seconds } = {}) {
-    const pool = this.app.content.trivia.filter((q, i) => !this.used.trivia.has(i) && (!this.g.opts.difficulty || q.difficulty <= this.g.opts.difficulty));
-    if (!pool.length) this.used.trivia.clear();
-    const all = this.app.content.trivia;
+    const pool = this.pool('trivia').filter((q, i) => !this.usedOf('trivia').has(i) && (!this.g.opts.difficulty || q.difficulty <= this.g.opts.difficulty));
+    if (!pool.length) this.usedOf('trivia').clear();
+    const all = this.pool('trivia');
     const pick = (pool.length ? pool : all)[Math.floor(Math.random() * (pool.length || all.length))];
-    this.used.trivia.add(all.indexOf(pick));
+    this.usedOf('trivia').add(all.indexOf(pick));
     const order = shuffle([0, 1, 2, 3]);
     // passing the iPad around takes time: give everyone room to answer
     const locals = this.localCount();
@@ -293,16 +303,16 @@ export class Games {
     const opts = this.g.opts;
     let useAlexa = !!this.app.alexa?.ready && opts.source !== 'carols' && opts.source !== 'preview';
     // XM_PREVIEWS=0: no internet lookups (the e2e test server)
-    let usePreview = !useAlexa && opts.source !== 'carols' && this.app.content.hits.length > 0 && process.env.XM_PREVIEWS !== '0';
+    let usePreview = !useAlexa && opts.source !== 'carols' && this.pool('hits').length > 0 && process.env.XM_PREVIEWS !== '0';
     let item, choices, preview = null, artwork = null;
     const pickHit = () => {
-      let hits = this.app.content.hits.filter((h, i) => !this.used.hits.has(i) && (!opts.level || h.level <= opts.level));
-      if (!hits.length) { this.used.hits.clear(); hits = this.app.content.hits; }
-      const h = hits[Math.floor(Math.random() * hits.length)] || this.app.content.hits[0];
-      this.used.hits.add(this.app.content.hits.indexOf(h));
+      let hits = this.pool('hits').filter((h, i) => !this.usedOf('hits').has(i) && (!opts.level || h.level <= opts.level));
+      if (!hits.length) { this.usedOf('hits').clear(); hits = this.pool('hits'); }
+      const h = hits[Math.floor(Math.random() * hits.length)] || this.pool('hits')[0];
+      this.usedOf('hits').add(this.pool('hits').indexOf(h));
       return h;
     };
-    const hitChoices = h => shuffle([h, ...shuffle(this.app.content.hits.filter(x => x.title !== h.title)).slice(0, 3)]).map(x => ({ title: x.title, artist: x.artist }));
+    const hitChoices = h => shuffle([h, ...shuffle(this.pool('hits').filter(x => x.title !== h.title)).slice(0, 3)]).map(x => ({ title: x.title, artist: x.artist }));
     if (usePreview) {
       const round = this.g.round;
       for (let tries = 0; tries < 4 && !preview; tries++) {
@@ -409,10 +419,10 @@ export class Games {
 
   // ---------- Would You Rather ----------
   wyrRound() {
-    const list = this.app.content.wyr;
+    const list = this.pool('wyr');
     let i = Math.floor(Math.random() * list.length), guard = 0;
-    while (this.used.wyr.has(i) && guard++ < 200) i = Math.floor(Math.random() * list.length);
-    this.used.wyr.add(i);
+    while (this.usedOf('wyr').has(i) && guard++ < 200) i = Math.floor(Math.random() * list.length);
+    this.usedOf('wyr').add(i);
     this.secret = { votes: {} };
     this.g = { ...this.g, phase: 'vote', a: list[i].a, b: list[i].b, votesIn: 0, endsAt: Date.now() + 15000, result: null };
     this.app.lights.overlay({ kind: 'split', color: '#d6312b', color2: '#1f9a52', value: 0.5, dur: 15 });
@@ -446,10 +456,10 @@ export class Games {
   // ---------- Pictionary (draw on the iPad, guess on phones, watch on the TV) ----------
   pictRound() {
     const level = this.g.opts.level || 2;
-    const list = this.app.content.pictionary.filter(w => w.level <= level);
+    const list = this.pool('pictionary').filter(w => w.level <= level);
     let w, guard = 0;
-    do { w = list[Math.floor(Math.random() * list.length)]; } while (this.used.pict.has(w.word) && guard++ < 200);
-    this.used.pict.add(w.word);
+    do { w = list[Math.floor(Math.random() * list.length)]; } while (this.usedOf('pict').has(w.word) && guard++ < 200);
+    this.usedOf('pict').add(w.word);
     this.strokes = [];
     this.app.broadcastTo(c => c.role !== 'remote', { type: 'strokes', strokes: [] });
     this.secret = { word: w.word, guessed: new Set() };

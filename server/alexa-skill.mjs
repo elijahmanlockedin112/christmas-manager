@@ -100,7 +100,7 @@ export const TV_SCENES = [
 export const INTENTS = [
   'TellJokeIntent', 'CountdownIntent', 'SantaIntent', 'TreeColorIntent', 'TreeEffectIntent', 'TreeOnIntent', 'TreeOffIntent',
   'LightShowIntent', 'StopShowIntent', 'StartGameIntent', 'AdventIntent', 'ElfNameIntent', 'PartyIntent', 'GoodnightIntent',
-  'YuleLogIntent', 'RadioIntent', 'AskSantaIntent', 'ReportCardIntent', 'StoryIntent', 'TvOnIntent', 'TvOffIntent', 'TvSceneIntent',
+  'YuleLogIntent', 'RadioIntent', 'AskSantaIntent', 'ReportCardIntent', 'StoryIntent', 'BuildGameIntent', 'TvOnIntent', 'TvOffIntent', 'TvSceneIntent',
 ];
 export const BUILTIN_INTENTS = ['AMAZON.HelpIntent', 'AMAZON.StopIntent', 'AMAZON.CancelIntent', 'AMAZON.FallbackIntent'];
 
@@ -269,7 +269,7 @@ function reply(inner, { end = true, reprompt } = {}) {
 
 const HELP = 'You can say, dear Santa, then any question. Ask for a report card for someone, or say, tell us a story. Say, turn on the TV, or show the Santa tracker on the TV. '
   + 'You can also ask me to tell a joke, count the sleeps until Christmas, or find Santa. '
-  + 'Tell the tree to change color, switch effects, or start a light show. I can also play a game, open the advent calendar, give you an elf name, or light the yule log. '
+  + 'Tell the tree to change color, switch effects, or start a light show. Say, make us a game about, then any idea, and the elves will build it. I can also play a game, open the advent calendar, give you an elf name, or light the yule log. '
   + 'What would you like?';
 
 // AI answers must come back inside Alexa's ~8 s window; if the elves are slow, say so and let the TV show it.
@@ -306,6 +306,14 @@ const HANDLERS = {
     if (r.slow) return reply('The elves are writing a story. It will be on the TV in a moment!');
     if (r.e) return reply(esc(r.e.message || 'The elves ran out of ink. Try again.'));
     return reply(`${plain(r.v.title)}. ${BRK('500ms')} ${plain(r.v.story)}`);
+  },
+  // The elves build the game in the background; Alexa only has to say it started (the TV shows the rest)
+  async BuildGameIntent({ app, slots }) {
+    const request = slots.request?.value;
+    if (!request) return reply('What game should the elves make? Say, make us a game about, then your idea.', { end: false, reprompt: 'Say, make us a game about, then your idea.' });
+    const r = await withinAlexaTime(Promise.resolve().then(() => app.act('workshop.build', { request, by: 'Alexa' })), 4000);
+    if (r.e) return reply(esc(r.e.message || 'The elves cannot start that right now.'));
+    return reply('The elves are building it now. Look at the TV!');
   },
   async TvOnIntent({ app }) {
     const r = await app.act('tv.power', { on: true });

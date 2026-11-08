@@ -330,6 +330,26 @@
           ]
         },
         {
+          "name": "BuildGameIntent",
+          "slots": [
+            {
+              "name": "request",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "make us a game about {request}",
+            "build us a game about {request}",
+            "the elves should make a game about {request}",
+            "make a game where {request}",
+            "make a game about {request}",
+            "build a game about {request}",
+            "build a game where {request}",
+            "have the elves make a game about {request}",
+            "make us a game of {request}"
+          ]
+        },
+        {
           "name": "TvOnIntent",
           "samples": [
             "turn on the tv",
