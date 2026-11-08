@@ -13,6 +13,7 @@ import { attachWebSocket } from './ws.mjs';
 import { Lights } from './lights.mjs';
 import { Games, TEAMS } from './games.mjs';
 import { PARTY_KINDS } from './party.mjs';
+import { DRAW_KINDS } from './draw-games.mjs';
 import { AlexaBridge, lanIp } from './alexa.mjs';
 import { AI } from './claude.mjs';
 import { Roku } from './roku.mjs';
@@ -81,6 +82,8 @@ const content = {
   mostLikely: readJson('content/most-likely.json', ['hide the last cookie']),
   mindReader: readJson('content/mind-reader.json', [{ a: 'Hot cocoa', b: 'Apple cider' }]),
   captions: readJson('content/captions.json', [{ scene: 'Santa is stuck in the chimney.', ask: 'What does he yell?' }]),
+  telephone: readJson('content/telephone.json', ['Santa stuck in a chimney']),
+  portraitCritic: readJson('content/portrait-critic.json', ['A bold study in lines. The artist is not sorry.']),
   elf: readJson('content/elf-names.json', { first: ['Jingle'], last: ['McSparkle'], jobs: ['Head of Bows'] }),
   nice: readJson('content/nice-list.json', { nice: ['Nice list confirmed.'], borderline: [] }),
   advent: readJson('content/advent.json', []),
@@ -636,7 +639,16 @@ const actions = {
 
   'game.start'(a) { app.games.start(a.kind, a); return { ok: true, joinUrl: joinUrl() }; },
   'game.next'(a) { const g = state.game; if (g && a.round !== undefined && (a.round !== g.round || a.phase !== g.phase)) return { ok: true, ignored: true }; app.games.next(); return { ok: true }; },
-  'game.reveal'(a) { const g = state.game; if (g && a.round !== undefined && a.round !== g.round) return { ok: true, ignored: true }; if (g?.kind === 'trivia') app.games.triviaReveal(); else if (g?.kind === 'pictionary') app.games.pictReveal(); else if (g?.kind === 'would-you-rather') app.games.wyrReveal(); else if (g?.kind === 'name-that-song') app.games.songReveal(null); else if (g && PARTY_KINDS.includes(g.kind)) app.games.partyReveal(); return { ok: true }; },
+  'game.reveal'(a) { const g = state.game; if (g && a.round !== undefined && a.round !== g.round) return { ok: true, ignored: true }; if (g?.kind === 'trivia') app.games.triviaReveal(); else if (g?.kind === 'pictionary') app.games.pictReveal(); else if (g?.kind === 'would-you-rather') app.games.wyrReveal(); else if (g?.kind === 'name-that-song') app.games.songReveal(null); else if (g && PARTY_KINDS.includes(g.kind)) app.games.partyReveal(); else if (g && DRAW_KINDS.includes(g.kind)) app.games.drawReveal(); return { ok: true }; },
+  // drawing games (server/draw-games.mjs): the iPad hands in PNG data URLs; secrets come back as the answer to drawStart
+  'game.ornamentHang'(a) { const r = app.games.ornamentHang(String(a.pid), a.png); return { ok: true, id: r.id }; },
+  'ornament.remove'(a) { return app.games.ornamentRemove(a.id); },
+  'game.drawStart'(a) { return { ok: true, ...app.games.drawStart(a.pid) }; },
+  'game.drawSubmit'(a) { return app.games.drawSubmit(a.pid, a); },
+  'game.portraitHint'(a) { return { ok: true, ...app.games.portraitHint(String(a.pid)) }; },
+  'game.portraitVote'(a) { app.games.portraitVote(String(a.pid), a.accurate, a.funny); return { ok: true }; },
+  'game.tpVote'(a) { app.games.tpVote(String(a.pid), a.moment); return { ok: true }; },
+  'game.tpSkipChain'() { app.games.tpSkipChain(); return { ok: true }; },
   // family games (server/party.mjs): ballot = a vote for a person (Most Likely To) or a caption (Caption Chaos)
   'game.ballot'(a) { const g = state.game, pid = String(a.pid), t = String(a.target); if (g?.kind === 'most-likely') app.games.mlVote(pid, t); else if (g?.kind === 'caption-chaos') app.games.capVote(pid, t); return { ok: true }; },
   'game.caption'(a) { app.games.capSubmit(String(a.pid), a.text, !!a.skip); return { ok: true }; },
@@ -821,6 +833,16 @@ const server = http.createServer(async (req, res) => {
       if (!fs.existsSync(f)) { res.writeHead(404); return res.end(); }
       res.writeHead(200, { 'content-type': 'image/jpeg', 'cache-control': 'max-age=31536000' }); // URLs carry ?v=<version>
       return res.end(fs.readFileSync(f));
+    }
+    // ornaments hung on the tree (kept all season) and the drawings of a game in progress; private like the photos
+    if (p.startsWith('/api/ornament/') || p.startsWith('/api/drawing/')) {
+      const orn = p.startsWith('/api/ornament/');
+      const id = p.slice(orn ? 14 : 13).replace(/\.png$/, '').replace(/[^\w-]/g, '');
+      let buf = null;
+      if (orn) { const f = path.join(DATA, 'ornaments', `${id}.png`); if (fs.existsSync(f)) buf = fs.readFileSync(f); } else buf = app.games.drawingBuf(id);
+      if (!buf) { res.writeHead(404); return res.end(); }
+      res.writeHead(200, { 'content-type': 'image/png', 'cache-control': orn ? 'max-age=31536000' : 'no-store' }); // ornament URLs carry ?v=<time hung>
+      return res.end(buf);
     }
     // the iPad reports its own errors and taps here, so device-only bugs show up in the Pi's log
     if (p === '/api/clientlog' && req.method === 'POST') {

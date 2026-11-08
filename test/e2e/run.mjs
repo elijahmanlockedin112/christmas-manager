@@ -233,6 +233,241 @@ try {
   await tvLook('tv-ml-final.png');
   await act('game.end'); await sleep(300);
   await ipad.tap('.tab[data-tab="games"]').catch(() => { });
+  // ---------- drawing games: Ornament Workshop, Portrait Studio, Sketch Telephone (real Pencil strokes) ----------
+  // a Pencil stroke around the pad (the same CDP pen input the Pictionary check uses)
+  const penStroke = async (page, sel, { rx = 0.2, ry = 0.28, n = 28 } = {}) => {
+    const r = await page.eval(`(() => { const r = document.querySelector(${JSON.stringify(sel)}).getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; })()`);
+    const at = a => ({ x: r.x + r.w * (0.5 + rx * Math.cos(a)), y: r.y + r.h * (0.5 + ry * Math.sin(a)) });
+    await page.send('Input.dispatchMouseEvent', { type: 'mousePressed', ...at(0), button: 'left', clickCount: 1, pointerType: 'pen', force: 0.6 });
+    for (let i = 1; i <= n; i++) { await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', ...at(i / n * Math.PI * 2), button: 'left', buttons: 1, pointerType: 'pen', force: 0.6 }); await sleep(12); }
+    await page.send('Input.dispatchMouseEvent', { type: 'mouseReleased', ...at(0), button: 'left', clickCount: 1, pointerType: 'pen' });
+    await sleep(120);
+  };
+  const strokes = () => ipad.eval(`window.__np.ui.dd.pad ? window.__np.ui.dd.pad.strokes.length : -1`);
+  // brightness around a hung ornament, read from the tree's own canvas
+  const ornBright = (page, tree, i = 0) => page.eval(`(() => { const t = ${tree}; const o = t.orn[${i}]; if (!o) return -1; const tg = t.ornamentTarget(o.slot), b = t.c.getBoundingClientRect(); const x = Math.round((tg.x - b.left) * t.dpr), y = Math.round((tg.y - b.top) * t.dpr); const d = t.c.getContext('2d').getImageData(x - 3, y - 3, 7, 7).data; let s = 0; for (let k = 0; k < d.length; k += 4) s += (d[k] + d[k + 1] + d[k + 2]) / 3; return Math.round(s / (d.length / 4)); })()`);
+  const imgsLoaded = (page, tree) => page.eval(`[...${tree}.ornImg.values()].length > 0 && [...${tree}.ornImg.values()].every(i => i.complete && i.naturalWidth > 0)`);
+  await act('game.photo', { pid: gma, photo: jpeg }); await act('game.photo', { pid: lily, photo: jpeg });
+  const rows3 = await ipad.eval(`[...document.querySelectorAll('.game-list .row')].map(e => e.querySelector('.t').textContent + '|' + e.querySelector('.s').textContent)`);
+  check('Games list has Ornament Workshop, Portrait Studio and Sketch Telephone with a blurb', ['Ornament Workshop', 'Portrait Studio', 'Sketch Telephone'].every(n => rows3.some(r => r.startsWith(n + '|') && r.length > n.length + 30)), rows3.length + ' rows');
+
+  // --- 1. Ornament Workshop ---
+  await ipad.tap('[data-start="ornaments"]'); await sleep(300);
+  await ipad.shot(path.join(OUT, 'ipad-ornament-lobby.png'));
+  await ipad.tap('#gNext'); await sleep(700);
+  st = await state();
+  check('Ornament Workshop opens (no rounds, no scores)', st.game?.kind === 'ornaments' && st.game.phase === 'workshop' && st.ornaments.length === 0);
+  await ipad.shot(path.join(OUT, 'ipad-ornament-who.png'));
+  await tvLook('tv-ornament-workshop.png');
+  await ipad.tap(`[data-orn="${lily}"]`); await sleep(400);
+  const onPad = await ipad.eval(`(() => { const p = document.querySelector('#dpad'); const r = p.getBoundingClientRect(); const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return { round: p.classList.contains('round'), w: Math.round(r.width), h: Math.round(r.height), hit: top === p || p.contains(top), vh: innerHeight, bottom: Math.round(r.bottom) }; })()`);
+  check('ornament pad is big, round and tappable on the iPad', onPad.round && onPad.w > 380 && Math.abs(onPad.w - onPad.h) < 3 && onPad.hit && onPad.bottom < onPad.vh, JSON.stringify(onPad));
+  await penStroke(ipad, '#dpad');
+  check('a Pencil stroke lands on the ornament pad', await strokes() === 1);
+  // palm rejection: once a Pencil has been seen, finger touches do not draw
+  const pr = await ipad.eval(`(() => { const r = document.querySelector('#dpad').getBoundingClientRect(); return { x: r.left + r.width * 0.5, y: r.top + r.height * 0.5 }; })()`);
+  await ipad.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: pr.x, y: pr.y }] });
+  await ipad.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: pr.x + 60, y: pr.y + 40 }] });
+  await ipad.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await sleep(150);
+  check('palm rejection: a finger touch after the Pencil draws nothing', await strokes() === 1);
+  await ipad.tap('.dd-head'); // CDP quirk: the first tap after a synthetic touch drag is swallowed, so settle it on a harmless spot
+  await ipad.tap('.dd-chips .chip[data-k="#d4a21f"]'); await ipad.tap('.dd-sizes .dd-size:nth-child(2)');
+  await penStroke(ipad, '#dpad', { rx: 0.1, ry: 0.1 });
+  check('gold + thick brush add a second stroke', await strokes() === 2 && await ipad.eval(`window.__np.ui.dd.pad.strokes[1].c === '#d4a21f' && window.__np.ui.dd.pad.strokes[1].w > 0.015`));
+  await ipad.tap('#ddUndo');
+  check('Undo removes the last stroke', await strokes() === 1);
+  await ipad.tap('[data-ball="#1b2745"]');
+  await ipad.tap('.dd-chips .chip[data-k="#f6efe0"]'); await penStroke(ipad, '#dpad', { rx: 0.3, ry: 0.15 });
+  await ipad.shot(path.join(OUT, 'ipad-ornament-pad.png'));
+  await ipad.tap('#ddClear');
+  check('Clear wipes the pad', await strokes() === 0);
+  await ipad.tap('[data-ball="#f6efe0"]'); await penStroke(ipad, '#dpad'); await ipad.tap('.dd-chips .chip[data-k="#d6312b"]'); await penStroke(ipad, '#dpad', { rx: 0.1, ry: 0.14 });
+  await ipad.tap('#ddDone'); await sleep(900);
+  st = await state();
+  const orn1 = st.ornaments[0];
+  check('"Hang it" saves an ornament by Lily', st.ornaments.length === 1 && orn1.name === 'Lily' && orn1.by === lily && st.game.x.moment?.id === orn1.id, JSON.stringify(st.ornaments));
+  const pngRes = await fetch(`${BASE}/api/ornament/${orn1.id}.png?v=${orn1.at}`);
+  const pngBuf = Buffer.from(await pngRes.arrayBuffer());
+  check('ornament PNG is served, small, 256px, long-cached', pngRes.status === 200 && pngRes.headers.get('content-type') === 'image/png' && /max-age=31536000/.test(pngRes.headers.get('cache-control')) && pngBuf.subarray(1, 4).toString() === 'PNG' && pngBuf.readUInt32BE(16) === 256 && pngBuf.length < 100000, `${pngBuf.length} bytes`);
+  check('ornament file is under the temp data dir only', fs.existsSync(path.join(DATA, 'ornaments', `${orn1.id}.png`)));
+  check('the pad closes and the iPad goes back to the faces', await ipad.eval(`!document.querySelector('#dpad') && document.querySelectorAll('[data-orn]').length === 3`));
+  await sleep(500);
+  check('TV hanging moment: the ornament swings in with the artist and a hat', await tv.eval(`!!document.querySelector('.orn-fly img.orn-ball') && !!document.querySelector('.orn-who .hat') && document.querySelector('.orn-who b').textContent === 'Lily'`));
+  await tvLook('tv-ornament-hanging.png');
+  await sleep(4400);
+  await tv.shot(path.join(OUT, 'tv-ornament-flying.png'));
+  await sleep(1800);
+  check('TV: the ornament flew onto the tree and the counter says 1', await tv.eval(`!document.querySelector('.orn-fly') && document.querySelector('#ornN').textContent === '1'`));
+  await tv.shot(path.join(OUT, 'tv-ornament-landed.png'));
+  // a second one, by Dad
+  await ipad.tap(`[data-orn="${dad}"]`); await sleep(300);
+  await penStroke(ipad, '#dpad', { rx: 0.25, ry: 0.25 }); await ipad.tap('#ddDone'); await sleep(800);
+  st = await state();
+  check('second ornament gets its own spot', st.ornaments.length === 2 && st.ornaments[0].slot !== st.ornaments[1].slot);
+  // the keepsake: end the game and look at both trees
+  await ipad.tap('#gEnd'); await sleep(1800);
+  check('ending the workshop brings the tree back', await ipad.eval(`!document.body.classList.contains('gamemode')`));
+  await ipad.tap('.tab[data-tab="lights"]'); await sleep(900);
+  check('iPad tree has both ornaments', await ipad.eval(`window.__np.tree.orn.length === 2`) && await imgsLoaded(ipad, 'window.__np.tree'));
+  const ib = await ornBright(ipad, 'window.__np.tree');
+  check('iPad tree really draws an ornament at its spot (bright cream on dark boughs)', ib > 120, `brightness ${ib}`);
+  await ipad.shot(path.join(OUT, 'ipad-tree-ornaments.png'));
+  await tvLook('tv-home-ornaments.png'); // the TV tab is in the background: bring it forward so it paints
+  check('TV home tree has both ornaments', await tv.eval(`window.__tv.homeTree.orn.length === 2`) && await imgsLoaded(tv, 'window.__tv.homeTree'));
+  const tb = await ornBright(tv, 'window.__tv.homeTree');
+  check('TV tree really draws an ornament at its spot', tb > 120, `brightness ${tb}`);
+  // they persist across a page reload
+  await ipad.goto(`${BASE}/`); await sleep(1800);
+  check('ornaments persist after a reload', await ipad.eval(`window.__np.tree.orn.length === 2`));
+  // taking one off: Setup lists them, x asks first
+  await ipad.tap('.tab[data-tab="setup"]'); await sleep(500);
+  await ipad.eval(`window.__asked = []; window.confirm = m => (window.__asked.push(m), false)`);
+  await ipad.tap(`[data-orn-del="${orn1.id}"]`); await sleep(300);
+  check('removing asks first; saying no keeps it', await ipad.eval(`window.__asked.length === 1`) && (await state()).ornaments.length === 2);
+  await ipad.eval(`window.confirm = () => true`);
+  await ipad.tap(`[data-orn-del="${orn1.id}"]`); await sleep(600);
+  check('confirmed removal takes it off the tree and deletes the file', (await state()).ornaments.length === 1 && (await fetch(`${BASE}/api/ornament/${orn1.id}.png`)).status === 404 && !fs.existsSync(path.join(DATA, 'ornaments', `${orn1.id}.png`)));
+  await ipad.shot(path.join(OUT, 'ipad-setup-ornaments.png'));
+  await ipad.tap('.tab[data-tab="games"]'); await sleep(300);
+
+  // --- 2. Portrait Studio ---
+  await ipad.tap('[data-start="portraits"]'); await sleep(300);
+  await ipad.tap('#gNext'); await sleep(700);
+  st = await state();
+  check('Portrait Studio: drawing phase, nothing about who draws whom in public state', st.game.phase === 'draw' && !/assign|subject/.test(JSON.stringify(st.game)));
+  await ipad.shot(path.join(OUT, 'ipad-portrait-who.png'));
+  await tvLook('tv-portrait-draw.png');
+  const pname = { [gma]: 'Grandma', [dad]: 'Dad', [lily]: 'Lily' }, subjects = {};
+  let peeked = false;
+  for (const id of [gma, dad, lily]) {
+    await ipad.tap(`[data-pdraw="${id}"]`); await sleep(300);
+    if (!peeked) { check('secret stays hidden until "show me who"', await ipad.eval(`!document.querySelector('.dd-name') && !!document.querySelector('#ddShow')`)); await ipad.shot(path.join(OUT, 'ipad-portrait-confirm.png')); }
+    await ipad.tap('#ddShow'); await sleep(500);
+    subjects[id] = await ipad.eval(`document.querySelector('.dd-name').textContent`);
+    check(`${pname[id]} is told to draw somebody else (${subjects[id]})`, subjects[id] !== pname[id] && Object.values(pname).includes(subjects[id]));
+    if (!peeked) {
+      peeked = true;
+      await ipad.tap('#ddHint'); await sleep(500);
+      check('hint: the subject\'s photo shows faintly over the pad', await ipad.eval(`(() => { const i = document.querySelector('.dd-peek'); return !!i && getComputedStyle(i).opacity < 0.5; })()`));
+      await ipad.shot(path.join(OUT, 'ipad-portrait-hint.png'));
+      await sleep(3300);
+      check('hint: gone after 3 seconds, and only once', await ipad.eval(`!document.querySelector('.dd-peek') && document.querySelector('#ddHint').disabled`));
+    }
+    await penStroke(ipad, '#dpad');
+    if (id === gma) {
+      await ipad.shot(path.join(OUT, 'ipad-portrait-pad.png'));
+      check('TV: Grandma is drawing, timer running, no subject shown', await tv.eval(`document.querySelector('.dg-h').textContent.includes('Grandma is drawing') && !!document.querySelector('.dg .timer')`));
+      await tvLook('tv-portrait-drawing.png');
+    }
+    await ipad.tap('#ddDone'); await sleep(700);
+  }
+  check('everyone is drawn exactly once', new Set(Object.values(subjects)).size === 3);
+  await sleep(2600);
+  st = await state();
+  check('gallery opens with 3 untitled works', st.game.phase === 'gallery' && st.game.x.entries.length === 3 && st.game.x.entries.every(e => /^Untitled No\. \d+$/.test(e.title) && /on iPad$/.test(e.medium)), st.game.phase);
+  await sleep(500);
+  check('TV gallery: gold frame, real photo and a museum placard', await tv.eval(`!!document.querySelector('.gal .gframe') && document.querySelectorAll('.gcorner').length === 4 && !!document.querySelector('.pframe') && /Untitled No\\./.test(document.querySelector('.pl-title').textContent) && /on iPad/.test(document.querySelector('.pl-by').textContent)`));
+  await tvLook('tv-portrait-gallery-frame.png');
+  await sleep(4000);
+  const critic = JSON.parse(fs.readFileSync(path.join(ROOT, 'content', 'portrait-critic.json'), 'utf8'));
+  const review = await tv.eval(`document.querySelector('#plRv')?.textContent || ''`);
+  check('TV gallery: the critic review appears on the placard (written pool, no AI key)', critic.includes(review.replace(/^“|”$/g, '')), review);
+  await tv.shot(path.join(OUT, 'tv-portrait-gallery-review.png'));
+  await ipad.shot(path.join(OUT, 'ipad-portrait-gallery.png'));
+  await ipad.tap('#gNext'); await sleep(900);
+  await ipad.tap('#gNext'); await sleep(900);
+  await ipad.tap('#gNext'); await sleep(1200);
+  st = await state();
+  check('Next walks the gallery, then voting opens', st.game.phase === 'vote', st.game.phase);
+  await tvLook('tv-portrait-vote.png');
+  for (const id of [gma, dad, lily]) {
+    await ipad.tap(`[data-pvote="${id}"]`); await sleep(300);
+    if (id === gma) {
+      check('voting: your own portrait is not offered', await ipad.eval(`document.querySelectorAll('[data-acc]').length === 2 && document.querySelectorAll('[data-fun]').length === 2`));
+      await ipad.shot(path.join(OUT, 'ipad-portrait-vote.png'));
+    }
+    await ipad.tap('[data-acc]'); await sleep(150); await ipad.tap('[data-fun]:last-child'); await sleep(150);
+    await ipad.tap('#vLock'); await sleep(500);
+  }
+  await sleep(2600);
+  st = await state();
+  check('votes score: winners named, points paid', st.game.phase === 'reveal' && st.game.x.results.winners.accurate.length >= 1 && st.game.x.results.winners.funny.length >= 1 && Object.values(st.game.x.gained).every(v => v >= 200), JSON.stringify(st.game.x.gained));
+  await sleep(1400);
+  check('TV reveal: ribbons on the winning frames', await tv.eval(`document.querySelectorAll('.wall-i .ribbon').length >= 2`));
+  await tvLook('tv-portrait-reveal.png');
+  await ipad.shot(path.join(OUT, 'ipad-portrait-reveal.png'));
+  await ipad.tap('#gNext'); await sleep(1500);
+  st = await state();
+  check('Portrait Studio ends on the podium', st.game.phase === 'final' && await tv.eval(`document.querySelectorAll('.podium .av').length === 3`));
+  await ipad.tap('#gEnd'); await sleep(400);
+
+  // --- 3. Sketch Telephone ---
+  await ipad.tap('.tab[data-tab="games"]').catch(() => { });
+  await ipad.tap('[data-start="telephone"]'); await sleep(300);
+  await ipad.tap('#gNext'); await sleep(700);
+  st = await state();
+  check('Sketch Telephone: 3 players, 3 steps, step 1 is drawing', st.game.phase === 'step' && st.game.total === 3 && st.game.x.kind === 'draw' && !/prompt|\/api\/drawing/.test(JSON.stringify(st.game)));
+  await ipad.shot(path.join(OUT, 'ipad-tp-who.png'));
+  await tvLook('tv-tp-step.png');
+  const phrase = {}, guesses = {};
+  for (let step = 0; step < 3; step++) {
+    const kind = (await state()).game.x.kind;
+    for (const id of [gma, dad, lily]) {
+      await ipad.tap(`[data-tstep="${id}"]`); await sleep(250);
+      if (step === 0 && id === gma) await ipad.shot(path.join(OUT, 'ipad-tp-confirm.png'));
+      await ipad.tap('#ddShow'); await sleep(500);
+      if (kind === 'draw') {
+        const text = await ipad.eval(`document.querySelector('.dd-phrase').textContent`);
+        if (step === 0) phrase[id] = text; else check(`step ${step + 1}: ${pname[id]} draws someone else's guess, not their own phrase`, Object.values(guesses).includes(text) && text !== phrase[id], text);
+        await penStroke(ipad, '#dpad', { rx: 0.15 + step * 0.05, ry: 0.2 });
+        if (step === 0 && id === gma) await ipad.shot(path.join(OUT, 'ipad-tp-draw.png'));
+        await ipad.tap('#ddDone');
+      } else {
+        const src = await ipad.eval(`document.querySelector('.dd-art')?.getAttribute('src') || ''`);
+        if (id === gma) { check('guessing: the iPad shows only the previous drawing', src.startsWith('/api/drawing/') && await ipad.eval(`!document.querySelector('#dpad') && !!document.querySelector('#tpGuess')`)); await ipad.shot(path.join(OUT, 'ipad-tp-guess.png')); }
+        guesses[id] = `a very confused ${pname[id].toLowerCase()} thing`;
+        await ipad.tap('#tpGuess'); await ipad.type(guesses[id]);
+        await ipad.tap('#ddDone');
+      }
+      await sleep(500);
+    }
+    await sleep(2300);
+  }
+  check('3 different starting phrases', new Set(Object.values(phrase)).size === 3, JSON.stringify(phrase));
+  st = await state();
+  check('after the last step the reveal starts with every chain complete', st.game.phase === 'reveal' && st.game.x.chains.length === 3 && st.game.x.chains.every(c => c.steps.length === 3 && new Set(c.steps.map(s => s.by)).size === 3));
+  await tvLook('tv-tp-reveal-first.png');
+  await ipad.shot(path.join(OUT, 'ipad-tp-reveal.png'));
+  let sawThen = false, sawCmp = false, taps = 0;
+  while ((await state()).game.phase === 'reveal' && taps < 30) {
+    await ipad.tap('#tpNext'); taps++;
+    await sleep(800);
+    const x = (await state()).game.x;
+    if (x && x.show >= 3 && !sawThen && !x.cmp) { sawThen = await tv.eval(`!!document.querySelector('.tp-then')`); await tv.shot(path.join(OUT, 'tv-tp-reveal-step.png')); }
+    if (x && x.cmp && !sawCmp) { sawCmp = await tv.eval(`!!document.querySelector('.tp-cmp .tp-quote')`); await tvLook('tv-tp-reveal-compare.png'); }
+  }
+  check('reveal: "and then…" transitions and a started-as / ended-as comparison', sawThen && sawCmp, `then ${sawThen} cmp ${sawCmp} taps ${taps}`);
+  check('reveal took 5 Next taps per chain (3 steps + compare + next chain)', taps === 15, `${taps}`);
+  st = await state();
+  check('after the last chain, voting for the favourite moment', st.game.phase === 'vote');
+  await ipad.tap(`[data-tvote="${gma}"]`); await sleep(300);
+  check('voting: your own steps are not offered', await ipad.eval(`document.querySelectorAll('[data-moment]').length === 6`));
+  await ipad.shot(path.join(OUT, 'ipad-tp-vote.png'));
+  await ipad.tap('[data-moment]'); await ipad.tap('#vLock'); await sleep(400);
+  for (const id of [dad, lily]) { await ipad.tap(`[data-tvote="${id}"]`); await sleep(250); await ipad.tap('[data-moment]'); await ipad.tap('#vLock'); await sleep(400); }
+  await sleep(2600);
+  st = await state();
+  check('verdict: a favourite moment and the chain that went furthest', st.game.phase === 'verdict' && st.game.x.winners.length >= 1 && !!st.game.x.furthest, JSON.stringify(st.game.x.furthest));
+  await sleep(900);
+  await tvLook('tv-tp-verdict.png');
+  await ipad.shot(path.join(OUT, 'ipad-tp-verdict.png'));
+  await ipad.tap('#gNext'); await sleep(1500);
+  check('Sketch Telephone ends on the podium', (await state()).game.phase === 'final' && await tv.eval(`document.querySelectorAll('.podium .av').length === 3`));
+  await ipad.tap('#gEnd'); await sleep(400);
+  await act('game.photo', { pid: gma, photo: jpeg }).catch(() => { });
+  await ipad.tap('.tab[data-tab="games"]').catch(() => { });
+
   // team play still works: 2 teams, pass the iPad for one shared question
   await ipad.tap('[data-teams="2"]'); await sleep(400);
   await ipad.tap('[data-start="trivia"]'); await sleep(300);

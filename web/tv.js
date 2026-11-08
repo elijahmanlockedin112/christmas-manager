@@ -5,6 +5,7 @@ import { Sound, Listener } from '/web/lib/audio.js';
 import { icon } from '/web/lib/icons.js';
 import { buildTimeline } from '/shared/song.mjs';
 import { syncPreview } from '/web/lib/preview-player.js';
+import { createDrawTv } from '/web/lib/draw-tv.js';
 
 let S = null;
 // The Pi's own screen (?kiosk=1): the carols are synthesized on the same 4 small cores that draw the
@@ -28,7 +29,7 @@ const net = connect({
     if (m.type === 'stroke') pict.add(m.stroke);
   },
 });
-window.__tv = { net, get state() { return S; }, sound };
+window.__tv = { net, get state() { return S; }, sound, get homeTree() { return scenes.home?.tree; } };
 
 // ---------- sound unlock ----------
 async function tryUnlock() {
@@ -148,6 +149,7 @@ scene('home', {
   enter() { treeViews.add(this.tree); loadLayout(this.tree); sizeCanvas(this.bg); },
   leave() { treeViews.delete(this.tree); },
   update() {
+    this.tree.setOrnaments(S.ornaments);
     const c = countdown();
     $('#hFam').textContent = `${S.settings.family}${c.xmas ? '' : ' · counting down'}`;
     $('#hBig').textContent = c.xmas ? '25' : c.d === 0 ? 'Eve' : c.d;
@@ -631,16 +633,37 @@ function partyView(g, prevPhase, { timer, teamsLine }) {
   }).join('')}</div></div>` + foot();
 }
 
+// ---------- drawing games: Ornament Workshop, Portrait Studio, Sketch Telephone (web/lib/draw-tv.js) ----------
+const DRAW_TV = ['ornaments', 'portraits', 'telephone'];
+const drawTv = createDrawTv({
+  S: () => S, esc, avatar, person, confetti, fmt, sound, CHK,
+  makeTree: canvas => new TreeView(canvas, { floor: true, ...TREE_OPTS }),
+  attachTree: tree => { treeViews.add(tree); loadLayout(tree); wantFrames = true; net.setFrames(true); },
+  detachTree: tree => { treeViews.delete(tree); wantFrames = false; net.setFrames(false); },
+});
+
 scene('game', {
   init() { this.key = ''; },
+  leave() { drawTv.reset(); },
   update() {
     const g = S.game;
     if (!g) return;
+    if (DRAW_TV.includes(g.kind) && g.phase !== 'lobby' && g.phase !== 'final') {
+      const names = { ornaments: 'Ornament Workshop', portraits: 'Portrait Studio', telephone: 'Sketch Telephone' };
+      const teamsLine = playersLine();
+      this.drawActive = true;
+      const timer = endsAt => `<div class="timer"><i id="gTimer" data-ends="${endsAt}" data-dur="${endsAt - Date.now()}"></i></div>`;
+      const top = `<div class="g-top"><b>${names[g.kind]}</b><span>${g.kind === 'ornaments' ? '' : `Round ${g.round} of ${g.total}`}</span></div>`;
+      this.key = ''; this.phase = g.phase;
+      drawTv.update(this.el, g, { top, timer, teams: teamsLine, foot: `<div class="g-foot"><span></span>${teamsLine}</div>` });
+      return;
+    }
+    if (this.drawActive) { drawTv.reset(); this.drawActive = false; this.key = ''; }
     const key = JSON.stringify([g.kind, g.phase, g.round, g.q, g.a, g.buzz, g.answer, g.word, g.result, g.winner, S.players.map(p => p.id + p.photo + p.score), S.teams.length, g.kind === 'pictionary' ? 0 : g.answered?.length, g.votesIn, g.guesses?.length, g.correct?.length, g.turn?.pid, g.picked, g.x]);
     if (key === this.key) return;
     const prevPhase = this.phase;
     this.key = key; this.phase = g.phase;
-    const names = { trivia: 'Trivia Showdown', 'name-that-song': 'Name That Song', 'would-you-rather': 'Would You Rather', pictionary: 'Pictionary', ...PARTY_TITLE };
+    const names = { trivia: 'Trivia Showdown', 'name-that-song': 'Name That Song', 'would-you-rather': 'Would You Rather', pictionary: 'Pictionary', ...PARTY_TITLE, ornaments: 'Ornament Workshop', portraits: 'Portrait Studio', telephone: 'Sketch Telephone' };
     const top = `<div class="g-top"><b>${names[g.kind]}</b><span>${g.phase === 'lobby' || g.phase === 'final' ? '' : `Round ${g.round} of ${g.total}`}</span></div>`;
     const scores = g.teamScores || (() => { const s = {}; for (const p of S.players) s[p.team] = (s[p.team] || 0) + (p.score || 0); return s; })();
     const teamsLine = g.solo ? playersLine() : `<div class="teams">${S.teams.map(t => `<span style="color:${t.color}">${t.name} ${fmt(scores[t.id] || 0)}</span>`).join('')}</div>`;

@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { previewFor } from './previews.mjs';
 import { PARTY_KINDS, partyMethods } from './party.mjs';
+import { DRAW_KINDS, drawMethods } from './draw-games.mjs';
 
 // one colour per person when everyone plays for themselves
 export const PLAYER_COLORS = ['#d6312b', '#1f9a52', '#e0a92e', '#3a7be0', '#b45ad8', '#e8743b', '#2bb3b1', '#d94f8c'];
@@ -46,11 +47,13 @@ export class Games {
     this.secret = {};
     this.used = { trivia: new Set(), hits: new Set(), wyr: new Set(), pict: new Set() };
     this.strokes = [];
+    this.drawings = new Map(); // finished PNG drawings of the drawing games (server/draw-games.mjs), by id
     this.drawIdx = -1;
     // the family roster for pass-the-iPad play is remembered between restarts
     for (const lp of app.config.roster || []) this.players.set(lp.id, { id: lp.id, name: lp.name, team: lp.team, photo: lp.photo || 0, score: 0, sockets: new Set(), local: true });
     this.streak = {}; // pid -> correct answers in a row (solo trivia)
     this.app.state.players = this.publicPlayers();
+    this.syncOrnaments(); // the ornaments hung on the tree stay for the whole season
   }
   get g() { return this.app.state.game; }
   set g(v) { this.app.state.game = v; this.app.changed(); }
@@ -139,15 +142,16 @@ export class Games {
   end() {
     this.clear();
     this.stopGameAudio();
+    this.drawings.clear();
     this.g = null;
     this.app.lights.clearOverlays();
     this.app.setTvScene(this.app.state.tv.prev || 'home');
   }
 
   start(kind, opts = {}) {
-    if (!['trivia', 'name-that-song', 'would-you-rather', 'pictionary', ...PARTY_KINDS].includes(kind)) throw new Error('Unknown game');
+    if (!['trivia', 'name-that-song', 'would-you-rather', 'pictionary', ...PARTY_KINDS, ...DRAW_KINDS].includes(kind)) throw new Error('Unknown game');
     // the family games always play for yourself, whatever the team switch says
-    const party = PARTY_KINDS.includes(kind) ? this.partySetup(kind, opts) : null;
+    const party = PARTY_KINDS.includes(kind) ? this.partySetup(kind, opts) : DRAW_KINDS.includes(kind) ? this.drawSetup(kind, opts) : null;
     this.clear();
     this.stopGameAudio();
     this.app.lights.clearOverlays();
@@ -168,6 +172,8 @@ export class Games {
   next() {
     const g = this.g;
     if (!g) return;
+    // the drawing games use Next to move a gallery or a chain reveal along
+    if (DRAW_KINDS.includes(g.kind) && g.phase !== 'lobby' && this.drawAdvance()) return;
     if (g.round >= g.total && g.phase !== 'lobby') return this.final();
     g.round++;
     if (g.kind === 'trivia' && g.hotSeat) this.triviaTurn();
@@ -176,6 +182,7 @@ export class Games {
     else if (g.kind === 'would-you-rather') this.wyrRound();
     else if (g.kind === 'pictionary') this.pictRound();
     else if (PARTY_KINDS.includes(g.kind)) this.partyRound();
+    else if (DRAW_KINDS.includes(g.kind)) this.drawRound();
   }
   final() {
     this.clear();
@@ -529,4 +536,4 @@ export class Games {
   }
 }
 
-Object.assign(Games.prototype, partyMethods);
+Object.assign(Games.prototype, partyMethods, drawMethods);

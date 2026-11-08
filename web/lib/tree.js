@@ -1,3 +1,5 @@
+import { ornamentSpot } from '/shared/ornament.mjs';
+
 // Glow sprites, one per quantized colour, drawn once and reused (a Raspberry Pi can't afford a new
 // radial gradient for every bulb on every frame).
 const HALOS = new Map();
@@ -28,6 +30,9 @@ export class TreeView {
     this.star = star;
     this.floor = floor;
     this.bg = null;
+    this.orn = [];               // ornaments hung by the family (see setOrnaments)
+    this.ornImg = new Map();
+    this.ornHidden = new Set();  // ids that are still flying in on the TV
     this.dpr = Math.min(2, window.devicePixelRatio || 1) * scale;
     this.ro = new ResizeObserver(() => this.resize());
     this.ro.observe(canvas);
@@ -38,13 +43,64 @@ export class TreeView {
     let lastDraw = 0;
     const loop = now => {
       this.raf = requestAnimationFrame(loop);
-      if (!this.dirty || now - lastDraw < minGap) return;
+      // hung ornaments sway, so a tree that has some redraws at up to ~30 fps even when the lights are still
+      const swaying = this.orn.length > 0;
+      if ((!this.dirty && !swaying) || now - lastDraw < (this.dirty ? minGap : Math.max(minGap, 32))) return;
       lastDraw = now; this.draw(); this.dirty = false;
     };
     this.raf = requestAnimationFrame(loop);
   }
   setLayout(list) { this.layout = list || []; this.bg = null; this.dirty = true; }
   setFrame(bytes) { this.colors = bytes; this.dirty = true; }
+  // The family's ornaments: [{id, slot, at}], latest 40 drawn. Each hangs at its slot's spot, swaying a little.
+  setOrnaments(list) {
+    const next = (list || []).slice(-40);
+    if (JSON.stringify(next.map(o => [o.id, o.slot, o.at])) === JSON.stringify(this.orn.map(o => [o.id, o.slot, o.at]))) return;
+    this.orn = next; this.dirty = true;
+  }
+  ornImage(o) {
+    const key = `${o.id}.${o.at}`;
+    let img = this.ornImg.get(key);
+    if (!img) {
+      img = new Image(); img.onload = () => (this.dirty = true);
+      img.src = `/api/ornament/${encodeURIComponent(o.id)}.png?v=${o.at}`;
+      if (this.ornImg.size > 120) this.ornImg.clear();
+      this.ornImg.set(key, img);
+    }
+    return img;
+  }
+  hideOrnament(id) { this.ornHidden.add(id); this.dirty = true; }
+  showOrnament(id) { this.ornHidden.delete(id); this.dirty = true; }
+  // where an ornament hangs, in client px, and how big it is drawn (the TV flies the new one in to here)
+  ornamentTarget(slot) {
+    const g = this.geom(), q = this.project(ornamentSpot(slot)), r = this.ornRadius(g) / this.dpr;
+    const b = this.c.getBoundingClientRect();
+    return { x: b.left + q.x / this.dpr, y: b.top + q.y / this.dpr, r };
+  }
+  ornRadius(g = this.geom()) { return Math.max(8 * this.dpr, g.treeH * 0.03); }
+  drawOrnaments(x, g) {
+    const now = performance.now() / 1000, r = this.ornRadius(g);
+    for (const o of this.orn) {
+      if (this.ornHidden.has(o.id)) continue;
+      const q = this.project(ornamentSpot(o.slot));
+      let ph = 0; for (let i = 0; i < o.id.length; i++) ph = (ph * 31 + o.id.charCodeAt(i)) % 628;
+      ph /= 100;
+      const ang = Math.sin(now * 0.9 + ph) * 0.08 + Math.sin(now * 0.37 + ph * 2) * 0.03;
+      x.save();
+      x.translate(q.x, q.y - r * 1.72); x.rotate(ang); // swings from its hook
+      x.strokeStyle = 'rgba(243,226,170,0.8)'; x.lineWidth = Math.max(1, this.dpr * 0.9);
+      x.beginPath(); x.moveTo(0, 0); x.lineTo(0, r * 0.62); x.stroke();
+      x.fillStyle = '#e3ad3a'; x.fillRect(-r * 0.24, r * 0.5, r * 0.48, r * 0.24);
+      x.translate(0, r * 1.72);
+      x.beginPath(); x.arc(0, 0, r, 0, Math.PI * 2);
+      x.save(); x.clip();
+      const img = this.ornImage(o);
+      if (img.complete && img.naturalWidth) x.drawImage(img, -r, -r, r * 2, r * 2); else { x.fillStyle = '#c9a24a'; x.fillRect(-r, -r, r * 2, r * 2); }
+      x.restore();
+      x.lineWidth = Math.max(1, r * 0.07); x.strokeStyle = 'rgba(255,236,190,0.85)'; x.stroke();
+      x.restore();
+    }
+  }
   resize() {
     const r = this.c.getBoundingClientRect();
     const w = Math.max(10, Math.round(r.width * this.dpr)), hgt = Math.max(10, Math.round(r.height * this.dpr));
@@ -172,6 +228,7 @@ export class TreeView {
         x.beginPath(); x.arc(q.x, q.y, r0 * (front ? 1 : 0.7), 0, Math.PI * 2); x.fill();
       }
     }
+    if (this.orn.length) this.drawOrnaments(x, g);
     if (this.star) {
       const sx = g.cx, sy = g.bottom - g.treeH * 1.0 - r0 * 2;
       const sr = g.half * 0.11;

@@ -5,6 +5,7 @@ import { Sound, Listener } from '/web/lib/audio.js';
 import { icon } from '/web/lib/icons.js';
 import { EFFECTS, makeEffect, spiralLayout } from '/shared/effects.mjs';
 import { buildTimeline } from '/shared/song.mjs';
+import { createDrawIpad } from '/web/lib/draw-ipad.js';
 
 let S = null;                     // latest server state
 let content = { advent: [], effects: EFFECTS, radio: [], charades: [] };
@@ -25,7 +26,7 @@ const net = connect({
     if (m.type === 'sfx' && ui.playLocal) sound.sfx(m.name);
   },
 });
-window.__np = { net, tree, get state() { return S; } };
+window.__np = { net, tree, ui, get state() { return S; } };
 
 const toastEl = $('#toast');
 let toastT = 0;
@@ -341,8 +342,14 @@ const GAMES = [
   ['most-likely', 'Most Likely To', 'Everyone secretly votes for who in the family fits the line. Faces and votes land on the TV.', 'people'],
   ['mind-reader', 'Mind Reader', 'One person secretly picks A or B. Everyone else guesses what they chose. Know your family.', 'sparkle'],
   ['caption-chaos', 'Caption Chaos', 'Caption a ridiculous scene, then vote for the funniest one. No voting for yourself.', 'chat'],
+  ['ornaments', 'Ornament Workshop', 'Draw an ornament and hang it on the tree. It stays there all season. Not a contest.', 'bell'],
+  ['portraits', 'Portrait Studio', 'Secretly draw another family member. An art critic reviews the gallery, then you vote.', 'pencil'],
+  ['telephone', 'Sketch Telephone', 'Draw a phrase, guess a drawing, pass it on. Watch how far it drifts on the TV.', 'shuffle'],
 ];
 const PARTY = ['most-likely', 'mind-reader', 'caption-chaos'];
+const DRAW = ['ornaments', 'portraits', 'telephone'];
+let DI = null; // the drawing games' iPad screens (web/lib/draw-ipad.js), made on first use
+const di = () => (DI ||= createDrawIpad({ ui, act, toast, face, facePick, esc, net, personOf, S: () => S, redo: () => renderGames(true) }));
 const GAME_NAMES = Object.fromEntries(GAMES.map(g => [g[0], g[1]]));
 const ANS = ['#d6312b', '#1f9a52', '#c98d16', '#3a7be0'];
 let lastGameSig = '';
@@ -403,9 +410,10 @@ function bindRoster(v) {
 function renderGames(force) {
   if (!S) return;
   const g = S.game;
-  const sig = JSON.stringify([g, S.players, S.teams, ui.secretWord, S.alexa?.ready, S.settings.phones, ui.votes]);
+  const sig = JSON.stringify([g, S.players, S.teams, ui.secretWord, S.alexa?.ready, S.settings.phones, ui.votes, S.ornaments]);
   if (!force && sig === lastGameSig) return;
   lastGameSig = sig;
+  if (g && DRAW.includes(g.kind) && di().live(g)) return; // never rebuild the panel under a pencil
   const v = $('[data-view=games]');
   const typing = document.activeElement?.id === 'newName' ? $('#newName').value : null;
   if (g?.kind === 'pictionary' && g.phase === 'draw' && $('#drawpad')) { renderHostBits(); return; }
@@ -430,7 +438,7 @@ function renderGames(force) {
 function renderHostBits(full) {
   const g = S.game; if (!g) return;
   const title = $('#hostTitle'), body = $('#hostBody'), btns = $('#hostBtns');
-  const nextLabel = g.phase === 'lobby' ? 'Start round 1' : g.round >= g.total && g.phase === 'reveal' ? 'Final scores' : 'Next';
+  const nextLabel = g.phase === 'lobby' ? (g.kind === 'ornaments' ? 'Open the workshop' : g.kind === 'telephone' ? 'Start step 1' : 'Start round 1') : g.round >= g.total && g.phase === 'reveal' ? 'Final scores' : 'Next';
   btns.innerHTML = `${g.phase !== 'final' ? `<button class="btn primary" id="gNext">${nextLabel}</button>` : `<button class="btn primary" id="gAgain">Play again</button>`}${['question', 'vote', 'draw', 'playing', 'buzzed', 'pass', 'write', 'pick', 'guess'].includes(g.phase) ? '<button class="btn" id="gReveal">Reveal</button>' : ''}<button class="btn ghost" id="gEnd">End</button>`;
   $('#gNext') && ($('#gNext').onclick = () => act('game.next', { round: g.round, phase: g.phase }));
   $('#gAgain') && ($('#gAgain').onclick = () => act('game.start', { kind: g.kind }));
@@ -441,7 +449,12 @@ function renderHostBits(full) {
     ? `<div class="scoreline faces-line">${[...S.players].sort((a, b) => b.score - a.score).map(p => `<span>${face(p, 26)}${esc(p.name)} <b class="num">${p.score || 0}</b></span>`).join('')}</div>`
     : `<div class="scoreline">${S.teams.map(t => `<span style="color:${t.color}">${t.name} ${scores[t.id] || 0}</span>`).join('')}</div>`;
   const locals = S.players.filter(p => p.local);
-  if (g.phase === 'lobby') { title.textContent = 'Everyone ready?'; body.innerHTML = `<p class="hint" style="margin:0">${S.players.length} playing. Add anyone missing below${S.players.some(p => p.local && !p.photo) ? ', tap a face to add a photo,' : ''} then start.</p>`; return; }
+  if (g.phase === 'lobby') {
+    title.textContent = 'Everyone ready?';
+    body.innerHTML = `<p class="hint" style="margin:0">${S.players.length} playing. Add anyone missing below${S.players.some(p => p.local && !p.photo) ? ', tap a face to add a photo,' : ''} then start.${g.kind === 'portraits' ? ' Everyone secretly draws someone else, so photos make it better.' : ''}</p>${g.kind === 'ornaments' ? di().ornamentManager() : ''}`;
+    if (g.kind === 'ornaments') di().bindOrnaments(body);
+    return;
+  }
   if (g.phase === 'final') {
     if (g.solo) { const names = (g.champs || []).map(id => personOf(id)?.name).filter(Boolean); title.textContent = names.length ? `${names.join(' & ')} ${names.length > 1 ? 'tie!' : 'wins!'}` : 'Final scores'; }
     else { const w = S.teams.find(t => t.id === g.winner); title.textContent = w ? `${w.name} wins` : 'Final scores'; }
@@ -449,6 +462,7 @@ function renderHostBits(full) {
   }
 
   if (PARTY.includes(g.kind)) return partyHost(g, title, body, scoreline);
+  if (DRAW.includes(g.kind)) return di().host(g, title, body, scoreline, btns);
   if (g.kind === 'trivia' && g.hotSeat && g.turn) {
     // hot seat: the iPad is just that person's screen
     const p = personOf(g.turn.pid) || g.turn;
@@ -827,6 +841,7 @@ function buildSetup() {
   const v = $('[data-view=setup]');
   v.innerHTML = `
     <div class="sec" id="checklist"></div>
+    <div class="sec" id="ornSec"></div>
     <div class="sec"><div class="sec-head"><h2>AI elves (Claude)</h2><span class="aside" id="aiCost"></span></div>
       <p class="hint">Powers the Elf Report Card, Santa's Mad Libs and Ask Santa (Claude Haiku). The key stays on the Pi and is never shown again.</p>
       <div class="inline"><input type="password" id="aiKey" placeholder="sk-ant-…" autocomplete="off"><button class="btn" id="aiKeySave">Save key</button></div>
@@ -882,6 +897,8 @@ function readOutputs() {
 }
 function renderSetup() {
   if (!S) return;
+  const os = JSON.stringify(S.ornaments || []);
+  if (ui.ornSig !== os) { ui.ornSig = os; $('#ornSec').innerHTML = di().ornamentManager(); di().bindOrnaments($('#ornSec')); }
   const pt = !!S.settings.physicalTree;
   $('#ptSw').classList.toggle('on', pt);
   $('#hwBody').style.display = pt ? '' : 'none';
@@ -1069,6 +1086,8 @@ async function loadAiUsage() {
 function render() {
   renderStage();
   if (!S) return;
+  tree.setOrnaments(S.ornaments);
+  document.body.classList.toggle('dd-on', !!(S.game && ui.dd?.active && $('#ddLive')));
   // game mode: while a game is on, the iPad is only the game (no tree, no tabs)
   const gm = !!S.game;
   if (gm !== document.body.classList.contains('gamemode')) {

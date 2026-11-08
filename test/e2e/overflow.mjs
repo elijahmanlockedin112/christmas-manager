@@ -6,6 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { launch, sleep } from './cdp.mjs';
+import { pngUrl } from './png.mjs';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const OUT = process.argv[2] || path.join(os.tmpdir(), 'np-overflow');
@@ -68,7 +69,7 @@ try {
   for (const [w, h] of sizes) {
     const p = await chrome.page(`${BASE}/tv`, { width: w, height: h, scale: 0.5 });
     await sleep(1500);
-    for (const [name, fn] of process.env.PARTY_ONLY ? [] : cases) {
+    for (const [name, fn] of (process.env.PARTY_ONLY || process.env.DRAW_ONLY) ? [] : cases) {
       await fn(); await sleep(1300);
       const bad = await p.eval(AUDIT);
       await p.shot(path.join(OUT, `${w}-${name}.png`));
@@ -77,7 +78,7 @@ try {
     await act('show.stop');
     // games with real players
     for (const n of ['Grandma Rosemary', 'Uncle Bartholomew', 'Lily', 'Dad']) await act('game.addPlayer', { name: n }).catch(() => { });
-    for (const kind of process.env.PARTY_ONLY ? [] : ['trivia', 'would-you-rather', 'name-that-song', 'pictionary']) {
+    for (const kind of (process.env.PARTY_ONLY || process.env.DRAW_ONLY) ? [] : ['trivia', 'would-you-rather', 'name-that-song', 'pictionary']) {
       await act('game.start', { kind }); await sleep(500);
       let bad = await p.eval(AUDIT); report.push(`${w}x${h} ${kind}-lobby: ${bad.length ? bad.join(' | ') : 'ok'}`);
       for (let r = 0; r < (kind === 'trivia' ? 6 : 2); r++) {
@@ -95,7 +96,7 @@ try {
     const ids = (await fetch(`${BASE}/api/state`).then(r => r.json())).players.map(p => p.id);
     const audit = async tag => { const bad = await p.eval(AUDIT); report.push(`${w}x${h} ${tag}: ${bad.length ? bad.join(' | ') : 'ok'}`); };
     const long = 'Honestly I only wanted one more cookie before the chimney thing got really weird';
-    for (const kind of ['most-likely', 'mind-reader', 'caption-chaos']) {
+    for (const kind of process.env.DRAW_ONLY ? [] : ['most-likely', 'mind-reader', 'caption-chaos']) {
       await act('game.start', { kind, rounds: 2 }); await sleep(500); await audit(`${kind}-lobby`);
       for (let r = 0; r < 2; r++) {
         await act('game.next'); await sleep(900);
@@ -121,6 +122,56 @@ try {
       }
       await act('game.end'); await sleep(300);
     }
+    // the drawing games, with real PNGs and the longest names (a pretend drawing from each player)
+    const ids2 = (await fetch(`${BASE}/api/state`).then(r => r.json())).players.map(q => q.id);
+    const shot = async tag => { await p.shot(path.join(OUT, `${w}-${tag}.png`)); };
+    const longName = 'Honestly one more cookie before the chimney thing got really weird';
+    // Ornament Workshop: lobby, workshop, the hanging moment, the ornament landed
+    await act('game.start', { kind: 'ornaments' }); await sleep(500); await audit('ornaments-lobby');
+    await act('game.next'); await sleep(900); await audit('ornaments-workshop'); await shot('ornaments-workshop');
+    for (let i = 0; i < 3; i++) await act('game.ornamentHang', { pid: ids2[i], png: pngUrl(256, 256, 'art', i + 1) });
+    await sleep(1800); await audit('ornaments-moment'); await shot('ornaments-moment');
+    await sleep(5200); await audit('ornaments-landed'); await shot('ornaments-landed');
+    await act('game.end'); await sleep(600);
+    // Portrait Studio
+    await act('game.start', { kind: 'portraits' }); await sleep(500); await audit('portraits-lobby');
+    await act('game.next'); await sleep(900); await audit('portraits-draw');
+    const first = await act('game.drawStart', { pid: ids2[0] }); await sleep(700); await audit('portraits-drawing'); await shot('portraits-drawing');
+    await act('game.drawSubmit', { pid: ids2[0], png: pngUrl(720, 540, 'art', 0) });
+    for (let i = 1; i < ids2.length; i++) { await act('game.drawStart', { pid: ids2[i] }); await act('game.drawSubmit', { pid: ids2[i], png: pngUrl(720, 540, 'art', i) }); }
+    await sleep(2800); await audit('portraits-gallery-frame'); await shot('portraits-gallery-frame');
+    await sleep(4600); await audit('portraits-gallery-review'); await shot('portraits-gallery-review');
+    for (let i = 0; i < ids2.length; i++) await act('game.next');
+    await sleep(1000); await audit('portraits-vote'); await shot('portraits-vote');
+    const pstate = (await fetch(`${BASE}/api/state`).then(r => r.json())).game;
+    for (const id of ids2) { const pick = pstate.x.entries.find(e => e.artist !== id); await act('game.portraitVote', { pid: id, accurate: pick.n, funny: pick.n }); }
+    await sleep(2800); await audit('portraits-reveal'); await shot('portraits-reveal');
+    await act('game.end'); await sleep(500);
+    // Sketch Telephone
+    await act('game.start', { kind: 'telephone' }); await sleep(500); await audit('telephone-lobby');
+    await act('game.next'); await sleep(900); await audit('telephone-step');
+    await act('game.drawStart', { pid: ids2[0] }); await sleep(600); await audit('telephone-drawing'); await shot('telephone-drawing');
+    for (let step = 0; step < ids2.length; step++) {
+      const kind = (await fetch(`${BASE}/api/state`).then(r => r.json())).game.x.kind;
+      for (const [i, id] of ids2.entries()) {
+        await act('game.drawStart', { pid: id });
+        await act('game.drawSubmit', kind === 'draw' ? { pid: id, png: pngUrl(720, 540, 'art', i + step) } : { pid: id, text: longName.slice(0, 60) });
+      }
+      await sleep(2200);
+    }
+    await audit('telephone-reveal-first'); await shot('telephone-reveal-first');
+    let n = 0;
+    while ((await fetch(`${BASE}/api/state`).then(r => r.json())).game.phase === 'reveal' && n < 40) {
+      await act('game.next'); n++; await sleep(1700);
+      const x = (await fetch(`${BASE}/api/state`).then(r => r.json())).game.x;
+      if (n === 3) { await audit('telephone-reveal-step'); await shot('telephone-reveal-step'); }
+      if (x?.cmp && !report.some(l => l.includes(`${w}x${h} telephone-compare`))) { await audit('telephone-compare'); await shot('telephone-compare'); }
+    }
+    await audit('telephone-vote'); await shot('telephone-vote');
+    const tg = (await fetch(`${BASE}/api/state`).then(r => r.json())).game;
+    for (const id of ids2) { let m; for (const [ci, ch] of tg.x.chains.entries()) for (const [si, st] of ch.steps.entries()) if (!m && st.by !== id) m = `${ci}.${si}`; await act('game.tpVote', { pid: id, moment: m }); }
+    await sleep(2800); await audit('telephone-verdict'); await shot('telephone-verdict');
+    await act('game.end'); await sleep(300);
     p.close();
   }
 } finally {

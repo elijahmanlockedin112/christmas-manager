@@ -143,6 +143,14 @@ Write one short, genuinely funny caption that answers the prompt. Deadpan beats 
     });
     return out.caption;
   }
+  // Portrait Studio: the snooty art critic looks at one family drawing and reviews it, kindly
+  async portraitCritic({ title, medium, artist, subject, png }) {
+    const text = `You are a magnificently pompous, over-the-top art critic reviewing a family game night's drawing, hung in a gold frame in a gallery. The piece is titled "${String(title).slice(0, 40)}", ${String(medium).slice(0, 40)}, by ${String(artist).slice(0, 20)}. It is meant to be a portrait of ${String(subject).slice(0, 20)}, a real family member who is in the room.
+Write the review in 1 or 2 sentences (max 45 words) that read well out loud. Be snooty, grand and funny about the ART: the lines, colours, composition, ambition, the bravery of the artist. Be affectionate. Never be mean, and never comment on anyone's real appearance, face, body, hair or age: the joke is the critic's pretension, not the subject. You may use the artist's name once.`;
+    const prompt = png ? [{ type: 'image', source: { type: 'base64', media_type: 'image/png', data: Buffer.from(png).toString('base64') } }, { type: 'text', text }] : text;
+    const out = await this.call({ feature: 'portrait-critic', schema: z.object({ review: z.string().describe('the critic\'s 1-2 sentence review, max 45 words, plain text') }), prompt, maxTokens: 300 });
+    return out.review;
+  }
   askSanta({ question, asker }) {
     return this.call({
       feature: 'ask-santa',

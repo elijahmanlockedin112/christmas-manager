@@ -328,3 +328,39 @@ body.gamemode .host-top h3 { font-size: 24px; }
 .capres { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); font-family: var(--serif); font-size: 19px; }
 .capres small { font-family: var(--sans); font-size: 13px; color: var(--muted); flex: none; }
 .capres.win { border-color: var(--gold); background: var(--gold-soft); }
+
+/* drawing games: Ornament Workshop, Portrait Studio, Sketch Telephone */
+.dd-live { display: flex; flex-direction: column; gap: 10px; }
+body.dd-on .host-top { display: none; } /* a pad on screen is the whole screen: no header to bump with a pencil */
+.dd-head { display: flex; align-items: center; gap: 14px; }
+.dd-head .grow { flex: 1; min-width: 0; }
+.dd-name { font-family: var(--serif); font-size: 26px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; }
+.dd-phrase { display: block; font-family: var(--serif); font-size: 28px; font-weight: 600; line-height: 1.15; color: var(--gold); }
+.dd-padhost { display: flex; justify-content: center; }
+.dpad { position: relative; flex: none; width: min(100%, calc((100dvh - 300px) * 1.3333)); min-width: 260px; aspect-ratio: 4 / 3; background: #fbf5e9; border-radius: 12px; touch-action: none; overflow: hidden; box-shadow: 0 0 0 1px var(--line2); }
+.dpad.round { width: min(100%, calc(100dvh - 280px)); aspect-ratio: 1; border-radius: 50%; box-shadow: 0 0 0 5px var(--gold), 0 0 0 6px rgba(0, 0, 0, .45); }
+.dpad canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.dd-peek { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .3; pointer-events: none; }
+.dd-tools { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; }
+.dd-chips { display: flex; gap: 8px; align-items: center; }
+.dd-chips .chip { width: 40px; height: 40px; }
+.dd-sizes { display: flex; gap: 6px; }
+.dd-size { width: 46px; height: 42px; border-radius: 10px; display: grid; place-items: center; background: var(--raise); border: 1px solid var(--line2); }
+.dd-size i { display: block; border-radius: 50%; background: var(--text); }
+.dd-size.on { border-color: var(--gold); background: var(--gold-soft); }
+.dd-go { display: flex; gap: 12px; justify-content: center; }
+.btn.big { height: 56px; padding: 0 28px; font-size: 18px; border-radius: 14px; }
+.dd-balls { display: flex; gap: 8px; }
+.ball { width: 40px; height: 40px; border-radius: 50%; background: var(--c); border: 2px solid rgba(255, 255, 255, .22); }
+.ball.on { outline: 2px solid var(--text); outline-offset: 3px; }
+.orn-thumb { width: 48px; height: 48px; border-radius: 50%; flex: none; background: var(--panel); object-fit: cover; box-shadow: 0 0 0 2px var(--gold); margin: 0 4px; }
+.orn-list .px { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 50%; background: var(--panel); border: 1px solid var(--line2); color: var(--muted); flex: none; }
+.dd-artbox { display: flex; justify-content: center; }
+.dd-art { max-width: 100%; max-height: calc(100dvh - 370px); min-height: 160px; background: #fbf5e9; border-radius: 12px; box-shadow: 0 0 0 1px var(--line2); }
+.dd-art.blank { display: grid; place-items: center; padding: 28px; color: #14281d; font-family: var(--serif); font-size: 22px; text-align: center; }
+.vgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin-top: 8px; }
+.vthumb { display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: 14px; background: var(--panel); border: 2px solid var(--line2); color: var(--text); text-align: left; min-height: 64px; }
+.vthumb img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 8px; background: #fbf5e9; }
+.vthumb span { font-weight: 600; font-size: 14px; color: var(--muted); }
+.vthumb em { font-family: var(--serif); font-style: normal; font-size: 19px; line-height: 1.2; padding: 6px 4px; }
+.vthumb.on { border-color: var(--gold); background: var(--gold-soft); }
