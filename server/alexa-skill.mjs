@@ -407,22 +407,37 @@ function resolveSong(slot) {
 }
 
 // ---------------------------------------------------------------- dispatch
+// Elf mode: "Alexa, open North Pole" keeps listening, so every follow-up goes to the app (no "ask North Pole"
+// prefix needed) until someone says stop, or nobody talks for a while.
+function keepListening(r) {
+  r.sessionAttributes = { ...(r.sessionAttributes || {}), elf: true };
+  if (r.response?.outputSpeech) {
+    r.response.shouldEndSession = false;
+    r.response.reprompt = { outputSpeech: { type: 'SSML', ssml: '<speak>What next? Or say stop.</speak>' } };
+  }
+  return r;
+}
+
 export async function handleAlexaRequest(app, envelope) {
   const req = envelope?.request || {};
+  const elf = !!envelope?.session?.attributes?.elf;
   try {
     if (req.type === 'LaunchRequest') {
-      return reply("Welcome to the North Pole! Santa's workshop is open. Ask for a joke, the countdown, or tell the tree what to do. What would you like?", { end: false, reprompt: 'You can say, tell me a joke, or, where is Santa. What would you like?' });
+      app.lights?.overlay?.({ kind: 'burst', color: '#ffd36b', dur: 1.5 });
+      return keepListening(reply("Elf mode is on! I'm listening for the North Pole. Say, dear Santa, then a question. Or, a report card for someone, tell us a story, show the countdown on the TV, or make the tree red. What would you like?", { end: false, reprompt: 'Say, dear Santa, then a question.' }));
     }
     if (req.type === 'SessionEndedRequest') return { version: '1.0', response: {} };
     if (req.type !== 'IntentRequest') return reply('The elves did not understand that one.');
     const name = req.intent?.name;
     const slots = req.intent?.slots || {};
-    if (name === 'AMAZON.HelpIntent') return reply(HELP, { end: false, reprompt: 'What would you like? You can say, tell me a joke.' });
+    if (name === 'AMAZON.HelpIntent') return keepListening(reply(HELP, { end: false, reprompt: 'What would you like? You can say, tell me a joke.' }));
     if (name === 'AMAZON.StopIntent' || name === 'AMAZON.CancelIntent') return reply('Merry Christmas! The elves wave goodbye.');
     if (name === 'AMAZON.FallbackIntent' || !HANDLERS[name]) {
-      return reply('Hmm, the elves did not catch that. Try, tell me a joke, or, where is Santa.');
+      const r = reply('Hmm, the elves did not catch that. Try, dear Santa, then a question, or, show the countdown on the TV.');
+      return elf ? keepListening(r) : r;
     }
-    return await HANDLERS[name]({ app, slots });
+    const out = await HANDLERS[name]({ app, slots });
+    return elf ? keepListening(out) : out;
   } catch (e) {
     app.log?.('[alexa] intent failed:', req.intent?.name, e.message);
     const nf = /song|find|unknown|not found/i.test(e.message);

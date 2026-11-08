@@ -66,7 +66,7 @@ test('POST /api creates a user, GET /api/<user> returns full state', async () =>
   assert.match(c.json[0].success.username, /^[0-9a-f]{32}$/);
   const u = c.json[0].success.username;
   const full = (await req(h, 'GET', `/api/${u}`)).json;
-  assert.equal(Object.keys(full.lights).length, 7);
+  assert.equal(Object.keys(full.lights).length, LIGHT_DEFS.length);
   assert.equal(full.config.bridgeid, 'B827EBFFFE123456');
   assert.equal(full.config.apiversion, '1.17.0');
   assert.ok(full.config.whitelist[u]);
@@ -78,11 +78,13 @@ test('POST /api creates a user, GET /api/<user> returns full state', async () =>
 test('lights list and single light', async () => {
   const h = mk(fakeApp());
   const list = (await req(h, 'GET', '/api/u/lights')).json;
-  assert.deepEqual(Object.values(list).map((l) => l.name), ['Christmas Tree', 'Light Show', 'Yule Log', 'Party Mode', 'Christmas Radio', 'Showtime', 'Goodnight Tree']);
+  assert.deepEqual(Object.values(list).map((l) => l.name), ['Christmas Tree', 'Light Show', 'Yule Log', 'Party Mode', 'Christmas Radio', 'Showtime', 'Goodnight Tree', 'Santa Tracker', 'Countdown', 'Joke Time', 'Story Time', 'Trivia Night', 'Nice List', 'TV']);
+  // every unique id keeps the Hue format, including the two-digit ones (10 -> 0a)
+  for (const l of Object.values(list)) assert.match(l.uniqueid, /^00:17:88:01:00:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}-0b$/);
   assert.equal(list[1].type, 'Extended color light');
   assert.equal(list[2].type, 'On/Off plug-in unit');
   assert.match(list[1].uniqueid, /^00:17:88:01:00:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}-0b$/);
-  assert.equal(new Set(Object.values(list).map((l) => l.uniqueid)).size, 7);
+  assert.equal(new Set(Object.values(list).map((l) => l.uniqueid)).size, LIGHT_DEFS.length);
   const one = (await req(h, 'GET', '/api/u/lights/1')).json;
   assert.equal(one.name, 'Christmas Tree');
   assert.equal(one.state.reachable, true);
@@ -138,7 +140,14 @@ test('virtual scene lights map to the right actions', async () => {
   await off(5); assert.deepEqual(take(), [['radio.stop', {}]]);
   await on(6); assert.deepEqual(take(), [['scene.showtime', {}]]);
   await on(7); assert.deepEqual(take(), [['scene.goodnight', {}]]);
-  assert.equal(LIGHT_DEFS.length, 7);
+  await on(8); assert.deepEqual(take(), [['tv.scene', { scene: 'santa' }]]);
+  await on(9); assert.deepEqual(take(), [['tv.scene', { scene: 'countdown' }]]);
+  await on(10); assert.deepEqual(take(), [['joke.tell', { say: false }]]);
+  await on(12); assert.deepEqual(take(), [['game.start', { kind: 'trivia' }]]);
+  await on(13); assert.deepEqual(take(), [['tv.scene', { scene: 'nicelist' }]]);
+  await on(14); assert.deepEqual(take(), [['tv.power', { on: true }]]);
+  await off(14); assert.deepEqual(take(), [['tv.power', { on: false }]]);
+  assert.equal(LIGHT_DEFS.length, 14);
 });
 
 test('errors: bad value, unknown param, failing action, bad json', async () => {

@@ -29,10 +29,18 @@ export const LIGHT_DEFS = [
   { id: '5', name: 'Christmas Radio' },
   { id: '6', name: 'Showtime' },
   { id: '7', name: 'Goodnight Tree' },
+  // "switches" that put something on the TV: they flip back to off by themselves so they can be used again
+  { id: '8', name: 'Santa Tracker', momentary: true },
+  { id: '9', name: 'Countdown', momentary: true },
+  { id: '10', name: 'Joke Time', momentary: true },
+  { id: '11', name: 'Story Time', momentary: true },
+  { id: '12', name: 'Trivia Night', momentary: true },
+  { id: '13', name: 'Nice List', momentary: true },
+  { id: '14', name: 'TV' },
 ];
 
 export function uniqueIdFor(id) {
-  return `00:17:88:01:00:ab:cd:0${id}-0b`;
+  return `00:17:88:01:00:ab:cd:${Number(id).toString(16).padStart(2, '0')}-0b`;
 }
 
 // ---------------------------------------------------------------- color conversion
@@ -320,7 +328,16 @@ export function createHueHandler(app, opts = {}) {
       case '5': await (on ? app.act('radio.play', {}) : app.act('radio.stop', {})); break;
       case '6': await (on ? app.act('scene.showtime', {}) : app.act('show.stop', {})); break;
       case '7': if (on) await app.act('scene.goodnight', {}); break;
+      case '8': await app.act(on ? 'tv.scene' : 'tv.scene', { scene: on ? 'santa' : 'home' }); break;
+      case '9': await app.act('tv.scene', { scene: on ? 'countdown' : 'home' }); break;
+      case '10': if (on) await app.act('joke.tell', { say: false }); break;
+      // AI takes a couple of seconds: answer Alexa right away and let the story land on the TV
+      case '11': if (on) app.act('ai.story', { read: true }).catch((e) => app.act('tv.message', { text: e.message, from: 'The elves' }).catch(() => { })); break;
+      case '12': await (on ? app.act('game.start', { kind: 'trivia' }) : app.act('game.end', {})); break;
+      case '13': await app.act('tv.scene', { scene: on ? 'nicelist' : 'home' }); break;
+      case '14': await app.act('tv.power', { on }); break;
     }
+    if (d.momentary && on) setTimeout(() => { st.on = false; }, 4000);
   }
 
   const J = (status, obj) => ({ status, type: 'application/json', body: JSON.stringify(obj) });
