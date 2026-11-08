@@ -302,3 +302,29 @@ body.gamemode .host-top h3 { font-size: 24px; }
   .join img { width: 108px; height: 108px; }
   .scene { min-height: 92px; padding: 12px; }
 }
+
+/* family games: Most Likely To, Mind Reader, Caption Chaos */
+.plead { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--gold); font-weight: 700; margin-bottom: 6px; }
+.host-q.big { font-size: 30px; line-height: 1.15; font-weight: 600; margin-bottom: 8px; }
+.pgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 12px; }
+.pface { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 8px 12px; min-height: 164px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line2); color: var(--text); font-weight: 600; font-size: 16px; transition: transform .08s, border-color .15s; }
+.pface:active { transform: scale(.96); border-color: var(--c); }
+.pface span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.voting-as { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line2); }
+.voting-as b { font-family: var(--serif); font-size: 22px; }
+.rank { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+.rank > div { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); font-weight: 600; }
+.rank > div.win { border-color: var(--gold); background: var(--gold-soft); }
+.rank .num { font-family: var(--mono); font-size: 20px; }
+.mr-opt { display: flex; align-items: center; gap: 12px; text-align: left; }
+.mr-opt b { font-family: var(--serif); font-size: 28px; flex: none; }
+.mr-two { margin-top: 12px; }
+.mr-two .bans { min-height: 150px; font-size: 22px; }
+.cap-ask { font-family: var(--serif); font-style: italic; color: var(--gold); font-size: 22px; margin-bottom: 4px; }
+.cap-input { font-size: 22px; font-family: var(--serif); min-height: 96px; margin-top: 12px; }
+.caps { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.capbtn { text-align: left; min-height: 64px; padding: 12px 16px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line2); color: var(--text); font-family: var(--serif); font-size: 21px; line-height: 1.2; }
+.capbtn:active { border-color: var(--gold); background: var(--gold-soft); }
+.capres { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); font-family: var(--serif); font-size: 19px; }
+.capres small { font-family: var(--sans); font-size: 13px; color: var(--muted); flex: none; }
+.capres.win { border-color: var(--gold); background: var(--gold-soft); }

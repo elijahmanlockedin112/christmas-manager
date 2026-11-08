@@ -87,6 +87,8 @@ try {
   // ---------- TV ----------
   const tv = await chrome.page(`${BASE}/tv`, { width: 1920, height: 1080, scale: 0.5 });
   pages.push(['tv', tv]);
+  // the TV tab sits in the background: bring it forward and let its entrance animations finish before the screenshot
+  const tvLook = async f => { await tv.send('Page.bringToFront'); await sleep(1400); await tv.shot(path.join(OUT, f)); };
   await sleep(1500);
   await tv.eval(`document.dispatchEvent(new PointerEvent('pointerdown'))`);
   await tv.shot(path.join(OUT, 'tv-home.png'));
@@ -137,6 +139,100 @@ try {
   await ipad.tap('#gEnd'); await sleep(500);
   check('ending the game brings the tree back', await ipad.eval(`!document.body.classList.contains('gamemode')`));
   await ipad.tap('.tab[data-tab="games"]'); await sleep(200);
+
+  // ---------- family games: real taps on the iPad, the TV shows the board ----------
+  const fp = (await state()).players, [gma, dad, lily] = ['Grandma', 'Dad', 'Lily'].map(n => fp.find(p => p.name === n).id);
+  const rows = await ipad.eval(`[...document.querySelectorAll('.game-list .row .t')].map(e => e.textContent)`);
+  check('Games list has the 3 new family games', ['Most Likely To', 'Mind Reader', 'Caption Chaos'].every(n => rows.includes(n)), rows.join(' | '));
+  // Most Likely To
+  await ipad.tap('[data-start="most-likely"]'); await sleep(300);
+  await ipad.tap('#gNext'); await sleep(700);
+  st = await state();
+  check('Most Likely To: a prompt to vote on', st.game?.kind === 'most-likely' && st.game.phase === 'vote' && !!st.game.x.prompt, st.game?.x?.prompt);
+  await ipad.shot(path.join(OUT, 'ipad-ml-who.png'));
+  await tvLook('tv-ml-vote.png');
+  await ipad.tap(`[data-who="${gma}"]`); await sleep(300);
+  await ipad.shot(path.join(OUT, 'ipad-ml-vote.png'));
+  check('Most Likely To: picker shows everyone, ballot is private', await ipad.eval(`document.querySelectorAll('[data-vote]').length === 3`));
+  await ipad.tap(`[data-vote="${dad}"]`); await sleep(500);
+  st = await state();
+  check('Most Likely To: first vote counted, nobody told who it was for', st.game.x.voted.length === 1 && !JSON.stringify(st.game).includes(`"${gma}":"`));
+  check('TV ticks off who has voted', await tv.eval(`document.querySelectorAll('.ml .ml-p .chk').length === 1`));
+  await ipad.tap(`[data-who="${dad}"]`); await ipad.tap(`[data-vote="${dad}"]`); await sleep(300);
+  await ipad.tap(`[data-who="${lily}"]`); await ipad.tap(`[data-vote="${gma}"]`); await sleep(2200);
+  st = await state();
+  check('Most Likely To: reveal crowns the crowd pick and scores it', st.game.phase === 'reveal' && st.game.x.winners[0] === dad && st.players.find(p => p.id === dad).score === 250 && st.players.find(p => p.id === gma).score === 100, JSON.stringify(st.game.x.winners));
+  await sleep(1200);
+  check('TV reveal: voters stacked on the winner, in a Santa hat', await tv.eval(`!!document.querySelector('.ml.reveal .ml-p.win .av .hat') && document.querySelectorAll('.ml.reveal .ml-p.win .stack .av').length === 2`));
+  await tvLook('tv-ml-reveal.png');
+  await ipad.shot(path.join(OUT, 'ipad-ml-reveal.png'));
+  await ipad.tap('#gEnd'); await sleep(400);
+  // Mind Reader
+  await ipad.tap('[data-start="mind-reader"]'); await sleep(300);
+  await ipad.tap('#gNext'); await sleep(700);
+  st = await state();
+  const spot = st.game.x.spot.id, guessers = [gma, dad, lily].filter(id => id !== spot);
+  check('Mind Reader: the spotlight person is called up first, choices hidden', st.game.phase === 'turn' && st.game.total === 6 && st.game.x.a === null);
+  await tvLook('tv-mr-turn.png');
+  await ipad.shot(path.join(OUT, 'ipad-mr-turn.png'));
+  await ipad.tap('#seatGo'); await sleep(500);
+  await ipad.shot(path.join(OUT, 'ipad-mr-pick.png'));
+  await tvLook('tv-mr-pick.png');
+  await ipad.tap('[data-side="a"]'); await sleep(500);
+  st = await state();
+  check('Mind Reader: the pick is locked in and stays secret', st.game.phase === 'guess' && st.game.x.pick === undefined && !JSON.stringify(st.game).includes('"pick":"a"'));
+  await ipad.tap(`[data-who="${guessers[0]}"]`); await sleep(300);
+  await ipad.shot(path.join(OUT, 'ipad-mr-guess.png'));
+  await ipad.tap('[data-gs="a"]'); await sleep(300);
+  await tvLook('tv-mr-guess.png');
+  await ipad.tap(`[data-who="${guessers[1]}"]`); await ipad.tap('[data-gs="b"]'); await sleep(2200);
+  st = await state();
+  check('Mind Reader: the right guess scores, the wrong one does not', st.game.phase === 'reveal' && st.game.x.pick === 'a' && st.players.find(p => p.id === guessers[0]).score === 300 && st.players.find(p => p.id === guessers[1]).score === 0 && st.players.find(p => p.id === spot).score === 100, JSON.stringify(st.game.x.gained));
+  await sleep(900);
+  check('TV reveal: the chosen option is lit, guesser faces under their choice', await tv.eval(`!!document.querySelector('.mr-card.chosen') && document.querySelectorAll('.mr-card .guessers .av').length === 2`));
+  await tvLook('tv-mr-reveal.png');
+  await ipad.shot(path.join(OUT, 'ipad-mr-reveal.png'));
+  await ipad.tap('#gEnd'); await sleep(400);
+  // Caption Chaos
+  await ipad.tap('[data-start="caption-chaos"]'); await sleep(300);
+  await ipad.tap('#gNext'); await sleep(700);
+  st = await state();
+  check('Caption Chaos: a scene to caption, no elf without a key', st.game.phase === 'write' && !!st.game.x.scene && st.game.x.elf === false);
+  await ipad.shot(path.join(OUT, 'ipad-cc-who.png'));
+  await tvLook('tv-cc-write.png');
+  const caps = { [gma]: 'Honestly I just wanted one more cookie before the whole chimney thing got weird', [dad]: 'Not the face, not the face', [lily]: 'I regret everything' };
+  for (const id of [gma, dad, lily]) {
+    await ipad.tap(`[data-who="${id}"]`); await sleep(200);
+    await ipad.tap('#capText'); await ipad.type(caps[id]);
+    if (id === gma) await ipad.shot(path.join(OUT, 'ipad-cc-write.png'));
+    await ipad.tap('#capGo'); await sleep(300);
+  }
+  await sleep(2000);
+  st = await state();
+  check('Caption Chaos: all captions in, anonymous vote starts', st.game.phase === 'vote' && st.game.x.entries.length === 3 && !JSON.stringify(st.game.x.entries).includes('author'));
+  await tvLook('tv-cc-vote.png');
+  await ipad.tap(`[data-who="${gma}"]`); await sleep(300);
+  check('Caption Chaos: you never see your own caption in the vote', await ipad.eval(`document.querySelectorAll('[data-cap]').length === 2 && ![...document.querySelectorAll('[data-cap]')].some(b => b.textContent.includes('one more cookie'))`));
+  await ipad.shot(path.join(OUT, 'ipad-cc-vote.png'));
+  await ipad.tap('[data-cap]'); await sleep(300);
+  for (const id of [dad, lily]) { await ipad.tap(`[data-who="${id}"]`); await ipad.tap('[data-cap]'); await sleep(300); }
+  await sleep(2400);
+  st = await state();
+  check('Caption Chaos: reveal names the authors and pays the votes', st.game.phase === 'reveal' && st.game.x.entries.every(e => e.author && e.voters) && Object.values(st.game.x.gained).every(v => v >= 200) && st.game.x.winners.length >= 1, JSON.stringify(st.game.x.gained));
+  await sleep(1500);
+  check('TV reveal: winning caption is large with its author', await tv.eval(`!!document.querySelector('.cc.reveal .cc-entry.win') && document.querySelectorAll('.cc.reveal .cc-entry').length === 3`));
+  await tvLook('tv-cc-reveal.png');
+  await ipad.shot(path.join(OUT, 'ipad-cc-reveal.png'));
+  await ipad.tap('#gEnd'); await sleep(400);
+  // a full short game ends on the podium
+  await act('game.start', { kind: 'most-likely', rounds: 1 }); await act('game.next'); await sleep(300);
+  for (const id of [gma, dad, lily]) await act('game.ballot', { pid: id, target: lily });
+  await sleep(1800); await act('game.next'); await sleep(1500);
+  st = await state();
+  check('family game ends on the podium with a champion', st.game.phase === 'final' && st.game.champs.length >= 1 && await tv.eval(`document.querySelectorAll('.podium .av').length === 3`));
+  await tvLook('tv-ml-final.png');
+  await act('game.end'); await sleep(300);
+  await ipad.tap('.tab[data-tab="games"]').catch(() => { });
   // team play still works: 2 teams, pass the iPad for one shared question
   await ipad.tap('[data-teams="2"]'); await sleep(400);
   await ipad.tap('[data-start="trivia"]'); await sleep(300);
