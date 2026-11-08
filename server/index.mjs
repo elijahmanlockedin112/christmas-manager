@@ -14,6 +14,7 @@ import { Lights } from './lights.mjs';
 import { Games, TEAMS } from './games.mjs';
 import { AlexaBridge, lanIp } from './alexa.mjs';
 import { AI } from './claude.mjs';
+import { Roku } from './roku.mjs';
 import { EFFECTS, hasEffect } from '../shared/effects.mjs';
 import { buildTimeline, lightCue } from '../shared/song.mjs';
 
@@ -123,6 +124,10 @@ app.lights = new Lights(app);
 app.games = new Games(app);
 app.alexa = new AlexaBridge(app);
 app.ai = new AI(app);
+app.roku = new Roku(app);
+app.roku.push();
+// find the TV at startup (read-only; never presses a key by itself)
+if (ON_PI) setTimeout(() => app.roku.discover().catch(() => { }), 4000);
 app.ai.push();
 // Alexa reads longer text in sentence-sized chunks (speak() caps each at 250 characters)
 async function alexaRead(text) {
@@ -556,8 +561,22 @@ const actions = {
 
   'tv.scene'(a) { setTvScene(a.scene === 'home' ? 'home' : a.scene); return { ok: true }; },
   'tv.message'(a) { state.tv.message = { text: String(a.text || '').slice(0, 120), from: String(a.from || '').slice(0, 30), at: Date.now() }; setTvScene('message'); returnLater('message', 25000); if (a.announce && (app.alexa.ready || app.alexa.vmReady)) app.alexa.speak(state.tv.message.text, { announce: true }).catch(() => { }); app.lights.overlay({ kind: 'burst', color: '#ffd36b', dur: 2 }); return { ok: true }; },
-  async 'tv.power'(a) { const r = await cec(a.on ? 'on 0' : 'standby 0'); if (a.on) await cec('as'); state.tv.power = !!a.on; app.changed(); return r; },
-  async 'tv.input'() { return cec('as'); },
+  // TV control: Roku over Wi-Fi first (reliable, can pick the input), HDMI-CEC as the fallback
+  async 'tv.power'(a) {
+    let r = { ok: false };
+    if (config.roku?.host || ON_PI) {
+      r = await app.roku.key(a.on ? 'PowerOn' : 'PowerOff');
+      if (r.ok && a.on && config.roku?.piInput) { await new Promise(res => setTimeout(res, 2500)); await app.roku.showPi(); }
+    }
+    if (!r.ok) { const c = await cec(a.on ? 'on 0' : 'standby 0'); if (a.on) await cec('as'); if (c.ok) r = c; else r.note = r.note || c.note; }
+    state.tv.power = !!a.on; app.changed();
+    return r;
+  },
+  async 'tv.input'() { const r = config.roku?.piInput ? await app.roku.showPi() : { ok: false }; return r.ok ? r : (await cec('as')).ok ? { ok: true } : r; },
+  async 'tv.findRoku'() { const host = await app.roku.discover(); return host ? { ok: true, model: config.roku.model } : { ok: false, note: 'No Roku TV found. Is it on and on the same Wi-Fi as the Pi?' }; },
+  async 'tv.detectInput'() { return app.roku.detectPiInput(); },
+  'tv.setInput'(a) { return app.roku.setPiInput(a.input); },
+  async 'tv.rokuTest'() { return app.roku.key('PowerOn'); }, // harmless when the TV is already on; tells us if the TV allows control
   // open / close the full-screen TV page on the Pi's own screen
   'tv.kiosk'(a) {
     if (!ON_PI) return { ok: false, note: 'This only works on the Pi.' };

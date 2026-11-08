@@ -611,6 +611,7 @@ function buildTv() {
     <div class="sec"><div class="sec-head"><h2>The TV</h2><span class="status" id="tvStatus"></span></div>
       <div class="btns"><button class="btn" id="tvOn">${icon('power')}Turn on</button><button class="btn" id="tvInput">${icon('tv')}Switch to the Pi</button><button class="btn ghost" id="tvOff">Off</button></div>
       <p class="hint mt" id="tvHint"></p>
+      <div class="box mt" id="rokuBox"></div>
       <div class="btns mt"><button class="btn" id="kioskOpen">${icon('tv')}Open the TV screen</button><button class="btn" id="kioskClose">${icon('x')}Close the TV screen</button></div>
       <p class="hint mt">Close shows the Pi's desktop; the lights keep running. On the Pi itself: press Esc, or move the mouse and click Exit.</p></div>
     <div class="sec"><div class="sec-head"><h2>On screen</h2></div><div class="rows" id="tvRows"></div></div>
@@ -630,7 +631,24 @@ function renderTv() {
   const st = $('#tvStatus');
   st.textContent = n ? `${n} screen${n > 1 ? 's' : ''} connected` : 'No TV connected';
   st.className = `status ${n ? 'ok' : 'warn'}`;
-  $('#tvHint').innerHTML = S.onPi ? 'Turn on and Switch use HDMI-CEC; turn on CEC in the TV settings (Anynet+, Bravia Sync, SimpLink).' : `The TV page is <span class="num" style="color:var(--gold)">${esc(S.joinUrl.replace('/play', '/tv'))}</span>. On the Pi it opens by itself on the HDMI TV.`;
+  $('#tvHint').innerHTML = S.onPi ? 'Turn on and Switch use Wi-Fi control on a Roku TV, or HDMI-CEC on other TVs.' : `The TV page is <span class="num" style="color:var(--gold)">${esc(S.joinUrl.replace('/play', '/tv'))}</span>. On the Pi it opens by itself on the HDMI TV.`;
+  const rk = S.tv.roku || {};
+  const rb = $('#rokuBox');
+  const rsig = JSON.stringify(rk);
+  if (rb.dataset.sig !== rsig) {
+    rb.dataset.sig = rsig;
+    rb.innerHTML = !rk.found
+      ? `<b>Roku TV</b><p class="hint" style="margin:4px 0 10px">No Roku TV found on the Wi-Fi yet.</p><button class="btn sm" id="rkFind">Look again</button>`
+      : `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><b>${esc(rk.model || 'Roku TV')}</b><span class="status ${rk.allowed ? 'ok' : rk.allowed === false ? 'bad' : 'warn'}">${rk.allowed ? 'Control allowed' : rk.allowed === false ? 'TV is blocking control' : 'Not tested yet'}</span></div>
+        ${rk.allowed ? '' : `<p class="hint" style="margin:8px 0">On the TV with its remote: <b>Settings → System → Advanced system settings → Control by mobile apps → Enabled</b>. For turning on from standby also turn on <b>Settings → System → Power → Fast TV start</b>.</p>`}
+        <div class="host-meta mt">The Pi is plugged into</div>
+        <div class="btns mt">${[1, 2, 3, 4].map(n => `<button class="btn sm${rk.piInput === n ? ' light' : ''}" data-hdmi="${n}">HDMI ${n}</button>`).join('')}<button class="btn sm ghost" id="rkDetect">Detect</button></div>
+        <div class="btns mt"><button class="btn sm" id="rkTest">Test control</button></div>`;
+    $('#rkFind') && ($('#rkFind').onclick = () => act('tv.findRoku', {}, r => (r.ok ? `Found ${r.model}` : r.note)));
+    rb.querySelectorAll('[data-hdmi]').forEach(b => (b.onclick = () => act('tv.setInput', { input: +b.dataset.hdmi }, `Pi set to HDMI ${b.dataset.hdmi}`)));
+    $('#rkDetect') && ($('#rkDetect').onclick = () => act('tv.detectInput', {}, r => (r.ok ? `Pi is on HDMI ${r.piInput}` : r.note)));
+    $('#rkTest') && ($('#rkTest').onclick = () => act('tv.rokuTest', {}, r => (r.ok ? 'The TV accepts commands' : r.note)));
+  }
   $('#tvRows').innerHTML = TV_SCENES.map(([id, name, s, ic]) => `<div class="row${S.tv.scene === id ? ' playing' : ''}" data-scene="${id}" role="button"><div class="lead">${icon(ic)}</div><div class="grow"><div class="t">${name}</div><div class="s">${s}</div></div>${S.tv.scene === id ? icon('check') : ''}</div>`).join('');
   $('#localSw').classList.toggle('on', ui.playLocal);
 }
@@ -838,7 +856,9 @@ function renderChecklist() {
     { id: 'icon', t: 'North Pole on the iPad home screen', d: 'Share (square with arrow) → Add to Home Screen.', ok: standalone },
     { id: 'pi', t: 'Running on the Raspberry Pi', d: 'The Pi starts everything by itself when it powers on.', ok: S.onPi },
     { id: 'tv', t: 'Pi plugged into the TV', d: 'HDMI from the Pi into the TV. The TV screen counts as connected when it shows North Pole.', ok: S.tv.clients > 0 },
-    { id: 'cec', t: 'TV remote control (HDMI-CEC) on', d: 'In the TV settings turn on CEC (Samsung: Anynet+, Sony: Bravia Sync, LG: SimpLink). Then Showtime turns the TV on.', manual: true },
+    S.tv.roku?.found
+      ? { id: 'roku', t: `The app can turn on the ${S.tv.roku.model || 'Roku TV'}`, d: 'On the TV: Settings → System → Advanced system settings → Control by mobile apps → Enabled. Then TV tab → Test control, and pick the Pi\'s HDMI input.', ok: !!S.tv.roku.allowed && !!S.tv.roku.piInput, go: 'tv' }
+      : { id: 'cec', t: 'TV remote control (HDMI-CEC) on', d: 'In the TV settings turn on CEC (Roku TV: Settings → System → Control other devices (CEC); Samsung: Anynet+; Sony: Bravia Sync; LG: SimpLink). Then Showtime turns the TV on.', manual: true },
     { id: 'family', t: 'Family added for games', d: 'Games tab → Players: add everyone with a team colour.', ok: S.players.length > 0, go: 'games' },
     { id: 'alexa', t: 'Alexa connected', d: 'Music tab → Alexa → Connect, then sign in to Amazon once.', ok: !!S.alexa?.ready, go: 'music' },
     { id: 'hue', t: 'Alexa can see the tree', d: 'Say "Alexa, discover devices". Then try "Alexa, turn the Christmas Tree red".', ok: !!S.hueSeenAt },
