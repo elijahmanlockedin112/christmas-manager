@@ -340,7 +340,9 @@ function buildGames() { renderGames(true); }
 const teamOf = id => S.teams.find(t => t.id === id) || { color: '#888', name: '' };
 function rosterHtml() {
   const team = teamOf;
-  const add = `<div class="addp"><input type="text" id="newName" placeholder="Add a player" maxlength="16" autocomplete="off"><div class="addteams">${S.teams.map(t => `<button class="chip${(ui.newTeam || S.teams[0].id) === t.id ? ' on' : ''}" data-nt="${t.id}" title="${esc(t.name)}" style="background:${t.color};width:34px;height:34px"></button>`).join('')}</div><button class="btn light" id="addP">Add</button></div>`;
+  // a real form: the iPad keyboard's Done/Go key submits it, and the Add button still works when iOS
+  // closes the keyboard and shifts the page mid-tap
+  const add = `<form class="addp" id="addForm" autocomplete="off"><input type="text" id="newName" placeholder="Add a player" maxlength="16" autocomplete="off" autocapitalize="words" enterkeyhint="done"><div class="addteams">${S.teams.map(t => `<button type="button" class="chip${(ui.newTeam || S.teams[0].id) === t.id ? ' on' : ''}" data-nt="${t.id}" title="${esc(t.name)}" style="background:${t.color};width:34px;height:34px"></button>`).join('')}</div><button type="submit" class="btn light" id="addP">Add</button></form>`;
   const list = S.players.length
     ? `<div class="players mt">${S.players.map(p => `<span class="player${p.online ? '' : ' off'}"><button class="pteam" data-pid="${p.id}" title="Switch team"><i style="background:${team(p.team).color}"></i>${esc(p.name)}</button><span class="num muted">${p.score || ''}</span>${p.local ? `<button class="px" data-del="${p.id}" aria-label="Remove ${esc(p.name)}">${icon('x')}</button>` : '<span class="tag">phone</span>'}</span>`).join('')}</div><p class="hint mt">Tap a name to switch teams.</p>`
     : '<p class="hint mt">Add everyone who is playing. They are remembered for next time.</p>';
@@ -349,9 +351,10 @@ function rosterHtml() {
   return add + list + teams + phones;
 }
 function bindRoster(v) {
-  const addNow = () => { const n = $('#newName').value.trim(); if (!n) return; act('game.addPlayer', { name: n, team: ui.newTeam || S.teams[0].id }).then(() => { $('#newName').value = ''; $('#newName').focus(); }); };
-  $('#addP').onclick = addNow;
-  $('#newName').onkeydown = e => e.key === 'Enter' && addNow();
+  const addNow = () => { const n = $('#newName').value.trim(); if (!n) { toast('Type a name first', true); return; } act('game.addPlayer', { name: n, team: ui.newTeam || S.teams[0].id }).then(() => { $('#newName').value = ''; $('#newName').focus(); }); };
+  $('#addForm').onsubmit = e => { e.preventDefault(); addNow(); };
+  // iOS: fire on touch-end too, in case the keyboard closing moves the button before the click lands
+  $('#addP').addEventListener('touchend', e => { e.preventDefault(); addNow(); }, { passive: false });
   v.querySelectorAll('[data-nt]').forEach(b => (b.onclick = () => { ui.newTeam = b.dataset.nt; v.querySelectorAll('[data-nt]').forEach(x => x.classList.toggle('on', x === b)); }));
   v.querySelectorAll('[data-teams]').forEach(b => (b.onclick = () => act('game.teams', { teams: +b.dataset.teams })));
   v.querySelectorAll('[data-pid]').forEach(b => (b.onclick = () => { const p = S.players.find(x => x.id === b.dataset.pid); if (!p) return; const ids = S.teams.map(t => t.id); act('game.setTeam', { id: p.id, team: ids[(ids.indexOf(p.team) + 1) % ids.length] }); }));

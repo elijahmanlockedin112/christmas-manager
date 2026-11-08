@@ -798,7 +798,7 @@ const server = http.createServer(async (req, res) => {
       const body = await readBody(req);
       let args = {};
       try { args = JSON.parse(body.toString('utf8') || '{}'); } catch { return sendJson(res, { error: 'bad JSON' }, 400); }
-      try { return sendJson(res, (await app.act(name, args)) || { ok: true }); } catch (e) { return sendJson(res, { error: e.message }, 400); }
+      try { return sendJson(res, (await app.act(name, args)) || { ok: true }); } catch (e) { log('act failed', name, '-', e.message); return sendJson(res, { error: e.message }, 400); }
     }
     if (p === '/api/qr.svg') { res.writeHead(200, { 'content-type': 'image/svg+xml', 'cache-control': 'no-cache' }); return res.end(qrSvg(url.searchParams.get('d') || joinUrl())); }
     if (p === '/api/songs') return sendJson(res, { songs: app.songList() });
@@ -864,7 +864,7 @@ attachWebSocket(server, '/ws', ws => {
     if (m.type === 'act') {
       if (role === 'player' && !PLAYER_ACTS.has(m.name)) { ws.send(JSON.stringify({ type: 'result', id: m.id, ok: false, error: 'Not allowed' })); return; }
       try { const data = await app.act(m.name, m.args); ws.send(JSON.stringify({ type: 'result', id: m.id, ok: true, data: data || { ok: true } })); }
-      catch (e) { ws.send(JSON.stringify({ type: 'result', id: m.id, ok: false, error: e.message })); }
+      catch (e) { log('act failed', m.name, '-', e.message); ws.send(JSON.stringify({ type: 'result', id: m.id, ok: false, error: e.message })); }
     }
   });
 }, { reject: isPublic });
