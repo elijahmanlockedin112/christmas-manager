@@ -673,12 +673,14 @@ function buildSetup() {
       <div class="inline"><input type="password" id="aiKey" placeholder="sk-ant-…" autocomplete="off"><button class="btn" id="aiKeySave">Save key</button></div>
       <div class="two mt"><label class="field"><span>Monthly budget ($)</span><input type="number" id="aiCap" min="0.5" step="0.5"></label><div class="field"><span class="muted" style="font-size:12.5px">&nbsp;</span><button class="btn" id="aiCapSave">Save budget</button></div></div>
       <div id="aiUsage" class="mt"></div></div>
-    <div class="sec"><div class="sec-head"><h2>Tree lights</h2><span class="aside" id="hwAside"></span></div>
+    <div class="sec"><div class="sec-head"><h2>Real tree lights</h2><label class="inline" style="gap:10px"><span class="muted" style="font-size:13px">I have pixel lights</span><button class="switch" id="ptSw"></button></label></div>
+      <p class="hint" id="ptHint">Off: the tree on the TV and iPad does the light shows; the real tree runs on its own. Turn on if you ever add addressable pixel lights (docs/HARDWARE.md).</p>
+      <div id="hwBody"><span class="aside" id="hwAside" style="display:block;margin-bottom:8px"></span>
       <div class="two"><label class="field"><span>Number of lights on the string</span><input type="number" id="hwCount" min="1" max="1000"></label>
       <label class="field"><span>Times the string wraps around the tree</span><input type="number" id="hwTurns" min="2" max="30" step="0.5"></label></div>
       <div class="rows" id="outRows"></div>
       <div class="btns mt"><button class="btn" id="hwSave">Save lights</button><button class="btn" id="mapBtn">${icon('camera')}Map my tree with the camera</button><button class="btn ghost" id="mapClear">Forget map</button></div>
-      <p class="hint mt">Mapping lights each bulb one at a time while the camera finds it, so effects, painting and games use the real positions. Takes about a minute, room lights off.</p></div>
+      <p class="hint mt">Mapping lights each bulb one at a time while the camera finds it, so effects, painting and games use the real positions. Takes about a minute, room lights off.</p></div></div>
     <div class="sec"><div class="sec-head"><h2>Schedule</h2><button class="switch" id="schSw"></button></div>
       <div class="two"><label class="field"><span>Lights on</span><input type="time" id="schOn"></label><label class="field"><span>Lights off</span><input type="time" id="schOff"></label></div></div>
     <div class="sec"><div class="sec-head"><h2>Family</h2></div>
@@ -696,6 +698,7 @@ function buildSetup() {
       <div class="btns"><button class="btn" id="lpSave">Save</button><button class="btn" id="lpSend">Send countdown now</button></div></div>
     <div class="sec"><div class="sec-head"><h2>Talk to the tree</h2></div>
       <p class="hint">On the Pi the tree shows up in the Alexa app as smart lights. Say "Alexa, discover devices", then "Alexa, turn the Christmas Tree red", "Alexa, turn on Light Show", "Alexa, turn on Yule Log". The full North Pole skill ("Alexa, ask North Pole for a joke") is in docs/ALEXA.md.</p></div>`;
+  $('#ptSw').onclick = () => act('settings.set', { physicalTree: !S.settings.physicalTree });
   $('#hwSave').onclick = () => act('hw.set', { count: +$('#hwCount').value, turns: +$('#hwTurns').value, outputs: readOutputs() }, 'Saved');
   $('#mapBtn').onclick = openMapper;
   $('#mapClear').onclick = () => act('map.clear', {}, 'Back to the default spiral');
@@ -720,6 +723,10 @@ function readOutputs() {
 }
 function renderSetup() {
   if (!S) return;
+  const pt = !!S.settings.physicalTree;
+  $('#ptSw').classList.toggle('on', pt);
+  $('#hwBody').style.display = pt ? '' : 'none';
+  $('#ptHint').style.display = pt ? 'none' : '';
   $('#hwAside').textContent = S.hw.mapped ? 'Mapped with the camera' : 'Default spiral layout';
   $('#schSw').classList.toggle('on', !!S.schedule.enabled);
   $('#lpSw').classList.toggle('on', !!S.ledPanel.on);
@@ -861,9 +868,11 @@ function renderChecklist() {
       : { id: 'cec', t: 'TV remote control (HDMI-CEC) on', d: 'In the TV settings turn on CEC (Roku TV: Settings → System → Control other devices (CEC); Samsung: Anynet+; Sony: Bravia Sync; LG: SimpLink). Then Showtime turns the TV on.', manual: true },
     { id: 'family', t: 'Family added for games', d: 'Games tab → Players: add everyone with a team colour.', ok: S.players.length > 0, go: 'games' },
     { id: 'alexa', t: 'Alexa connected', d: 'Music tab → Alexa → Connect, then sign in to Amazon once.', ok: !!S.alexa?.ready, go: 'music' },
-    { id: 'hue', t: 'Alexa can see the tree', d: 'Say "Alexa, discover devices". Then try "Alexa, turn the Christmas Tree red".', ok: !!S.hueSeenAt },
-    { id: 'lights', t: 'Pixel lights on the tree', d: 'Buy and wire them: the guide is docs/HARDWARE.md (about $40–70). Until then the TV shows the tree.', manual: true, link: '/docs/HARDWARE.md' },
-    { id: 'map', t: 'Tree mapped with the camera', d: 'After the lights are on: set the light count below, then Map my tree.', ok: S.hw.mapped },
+    { id: 'hue', t: 'Alexa can see the North Pole switches', d: 'Say "Alexa, discover devices". Then try "Alexa, turn on Countdown".', ok: !!S.hueSeenAt || !!done.hue },
+    ...(S.settings.physicalTree ? [
+      { id: 'lights', t: 'Pixel lights on the tree', d: 'Buy and wire them: the guide is docs/HARDWARE.md (about $40–70). Until then the TV shows the tree.', manual: true, link: '/docs/HARDWARE.md' },
+      { id: 'map', t: 'Tree mapped with the camera', d: 'After the lights are on: set the light count below, then Map my tree.', ok: S.hw.mapped },
+    ] : []),
     { id: 'ai', t: 'AI elves switched on', d: 'Paste the Claude key just below.', ok: !!S.ai?.configured },
     { id: 'tailscale', t: 'Optional: reach the Pi from anywhere', d: 'Install Tailscale on the Pi so the iPad link works away from home without the PC.', manual: true, optional: true },
     { id: 'skill', t: 'Optional: the "North Pole" Alexa skill', d: '"Alexa, ask North Pole for a joke". Steps in docs/ALEXA.md.', manual: true, optional: true, link: '/docs/ALEXA.md' },

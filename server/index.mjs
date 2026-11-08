@@ -41,7 +41,7 @@ const DEFAULT_CONFIG = {
   lights: { power: true, effect: 'classic', color: '#ff3b2f', brightness: 0.8, speed: 1 },
   settings: {
     family: 'The Family', teams: 2, home: { name: 'Atlanta', lat: 33.75, lon: -84.39, utc: -5 },
-    lightDelayMs: 0, showAudio: 'tv', alexaJokes: true, joinUrl: '', goodnightMinutes: 20, phones: false, remoteUrl: '',
+    lightDelayMs: 0, showAudio: 'tv', alexaJokes: true, joinUrl: '', goodnightMinutes: 20, phones: false, remoteUrl: '', physicalTree: true,
   },
   schedule: { enabled: false, on: '17:00', off: '23:30' },
   alexa: { enabled: true, device: null, proxyIp: '', proxyPort: 47927 },
@@ -670,7 +670,7 @@ const actions = {
   'map.clear'() { config.hw.layout = null; saveConfig(); app.lights.applyLayout(); app.changed(); return { ok: true }; },
 
   'settings.set'(a) {
-    for (const k of ['family', 'remoteUrl', 'lightDelayMs', 'showAudio', 'alexaJokes', 'joinUrl', 'goodnightMinutes', 'phones']) if (a[k] !== undefined) config.settings[k] = a[k];
+    for (const k of ['family', 'remoteUrl', 'physicalTree', 'lightDelayMs', 'showAudio', 'alexaJokes', 'joinUrl', 'goodnightMinutes', 'phones']) if (a[k] !== undefined) config.settings[k] = a[k];
     if (a.teams !== undefined) config.settings.teams = Math.max(2, Math.min(4, a.teams | 0));
     if (a.home && typeof a.home.lat === 'number') config.settings.home = a.home;
     if (a.schedule) config.schedule = { ...config.schedule, ...a.schedule };

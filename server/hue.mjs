@@ -381,7 +381,11 @@ export function createHueHandler(app, opts = {}) {
     if (rest.length === 1) {
       if (method === 'GET') {
         // an Echo listing the lights means "Alexa, discover devices" found us: tick it on the setup checklist
-        if (app.state && !app.state.hueSeenAt) { app.state.hueSeenAt = Date.now(); app.changed?.(); }
+        if (app.state && !app.state.hueSeenAt) {
+          app.state.hueSeenAt = Date.now();
+          if (app.config && !app.config.setupDone?.hue) { app.config.setupDone = { ...(app.config.setupDone || {}), hue: true }; app.saveConfig?.(); }
+          app.changed?.();
+        }
         return J(200, allLights());
       }
       if (method === 'POST') return J(200, [{ success: { '/lights': 'Searching for new devices' } }]);
