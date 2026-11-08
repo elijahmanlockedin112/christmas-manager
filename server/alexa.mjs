@@ -139,7 +139,7 @@ export class AlexaBridge {
     for (const [serial, d] of Object.entries(this.remote?.serialNumbers || {})) {
       const caps = d.capabilities || [];
       if (!caps.includes('VOLUME_SETTING') && !caps.includes('MUSIC_SKILL') && !caps.includes('AUDIO_PLAYER')) continue;
-      list.push({ serial, name: d.accountName || serial, family: d.deviceFamily || '' });
+      list.push({ serial, name: d.accountName || serial, family: d.deviceFamily || '', type: d.deviceType || '', online: d.online !== false });
     }
     this.devices = list;
   }
