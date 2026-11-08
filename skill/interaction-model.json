@@ -310,8 +310,8 @@
             "give {name} a report card",
             "grade {name}",
             "how did {name} do this year",
-            "write {name}'s report card",
-            "{name}'s report card"
+            "the report card for {name}",
+            "show the report card for {name}"
           ]
         },
         {

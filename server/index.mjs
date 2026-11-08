@@ -730,7 +730,7 @@ const actions = {
     if (!question) throw new Error('Type a question for Santa.');
     const answer = await app.ai.askSanta({ question, asker: String(a.asker || '').slice(0, 24) });
     showAi('santa', { question, asker: String(a.asker || '').slice(0, 24), answer });
-    if (a.read !== false) alexaRead(`Ho ho ho! ${answer}`);
+    if (a.read !== false) alexaRead(/^\W*ho,? ho/i.test(answer) ? answer : `Ho ho ho! ${answer}`);
     return { ok: true, answer };
   },
 

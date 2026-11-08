@@ -289,7 +289,8 @@ const HANDLERS = {
     const r = await withinAlexaTime(app.act('ai.askSanta', { question: q, read: false }));
     if (r.slow) return reply("Santa is writing his answer. Look at the TV!");
     if (r.e) return reply(esc(r.e.message || "Santa's mailbox is jammed. Try again in a minute."));
-    return reply(`Ho ho ho! ${plain(r.v.answer)}`);
+    const ans = plain(r.v.answer);
+    return reply(/^\W*ho,? ho/i.test(ans) ? ans : `Ho ho ho! ${ans}`);
   },
   async ReportCardIntent({ app, slots }) {
     const name = slots.name?.value;
@@ -451,6 +452,8 @@ export async function install(app) {
     try {
       const v = await verifyRequest(app, req.headers || {}, body);
       if (!v.ok) { app.log('[alexa] rejected:', v.reason); return send(v.status, { error: v.reason }); }
+      const rq = v.envelope?.request || {};
+      app.log('[alexa] heard', rq.type + (rq.intent?.name ? ' ' + rq.intent.name : ''));
       return send(200, await handleAlexaRequest(app, v.envelope));
     } catch (e) {
       app.log('[alexa] error', e.message);

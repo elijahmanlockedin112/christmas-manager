@@ -29,12 +29,17 @@ const intents = [
   { name: 'RadioIntent', slots: [slot('channel', 'RADIO_CHANNEL')], samples: ['play christmas radio', 'play the radio', 'start the radio', 'turn on christmas music', 'play {channel} radio', 'put on the radio', 'play christmas music', 'tune the radio to {channel}'] },
   // AMAZON.SearchQuery needs a carrier phrase: "Alexa, ask North Pole: dear Santa, how do reindeer fly?"
   { name: 'AskSantaIntent', slots: [slot('question', 'AMAZON.SearchQuery')], samples: ['dear santa {question}', 'ask santa {question}', 'santa {question}', 'hey santa {question}', 'question for santa {question}', 'i want to ask santa {question}', 'tell santa {question}'] },
-  { name: 'ReportCardIntent', slots: [slot('name', 'AMAZON.FirstName')], samples: ['report card for {name}', 'a report card for {name}', 'make a report card for {name}', 'elf report card for {name}', 'give {name} a report card', 'grade {name}', 'how did {name} do this year', "write {name}'s report card", "{name}'s report card"] },
+  { name: 'ReportCardIntent', slots: [slot('name', 'AMAZON.FirstName')], samples: ['report card for {name}', 'a report card for {name}', 'make a report card for {name}', 'elf report card for {name}', 'give {name} a report card', 'grade {name}', 'how did {name} do this year', 'the report card for {name}', 'show the report card for {name}'] },
   { name: 'StoryIntent', samples: ['tell us a story', 'tell a story', 'tell me a story', 'story time', 'tell us a christmas story', 'tell a christmas story', 'make up a story', 'christmas story', "it's story time", 'read us a story'] },
   { name: 'TvOnIntent', samples: ['turn on the tv', 'turn the tv on', 'tv on', 'switch on the tv', 'put it on the tv', 'start the tv', 'wake up the tv'] },
   { name: 'TvOffIntent', samples: ['turn off the tv', 'turn the tv off', 'tv off', 'switch off the tv', 'shut off the tv', 'put the tv to sleep'] },
   { name: 'TvSceneIntent', slots: [slot('scene', 'TV_SCENE')], samples: ['show the {scene} on the tv', 'put the {scene} on the tv', 'show {scene}', 'put on the {scene}', 'tv show the {scene}', 'switch the tv to the {scene}', 'show the {scene}'] },
 ];
+
+// Alexa rejects samples where a slot is glued to other characters ("{name}'s") or that have stray symbols.
+for (const it of intents) for (const s of it.samples) {
+  if (/\}[^\s]|[^\s]\{/.test(s) || /[^a-z0-9 '{}.?-]/i.test(s)) throw new Error(`Alexa can't parse sample "${s}" in ${it.name}`);
+}
 
 const val = (id, name, syn = []) => ({ id, name: { value: name, ...(syn.length ? { synonyms: syn } : {}) } });
 const types = [
