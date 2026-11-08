@@ -31,7 +31,7 @@ test('buildGame: good trivia comes back in the exact trivia shape, one Haiku cal
   assert.deepEqual(Object.keys(out.items[0]).sort(), Object.keys(json('trivia-1.json')[0]).sort());
   assert.equal(ai.prompts.length, 1);
   assert.equal(ai.prompts[0].feature, 'workshop');
-  assert.equal(ai.prompts[0].maxTokens, 2500);
+  assert.equal(ai.prompts[0].maxTokens, 8000); // 2500 truncated a real 12-question game on the Pi
   assert.match(ai.prompts[0].prompt, /Bryson plays point guard/);
   assert.match(ai.prompts[0].prompt, /Elijah, Trinity/);
 });

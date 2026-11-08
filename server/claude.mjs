@@ -101,8 +101,10 @@ export class AI {
         ? await this.client.messages.parse({ ...req, output_config: { effort: 'low', format: zodOutputFormat(schema) } })
         : await this.client.messages.create(req);
       const u = res.usage || {};
-      this.log({ ...base, ok: res.stop_reason !== 'refusal', stop: res.stop_reason, id: res.id, input: u.input_tokens || 0, output: u.output_tokens || 0, cacheRead: u.cache_read_input_tokens || 0, cacheWrite: u.cache_creation_input_tokens || 0, cost: +this.cost(u).toFixed(6) });
+      // a structured answer cut off at max_tokens can't be parsed: count it as a failed call
+      this.log({ ...base, ok: res.stop_reason !== 'refusal' && !(schema && res.stop_reason === 'max_tokens'), stop: res.stop_reason, id: res.id, input: u.input_tokens || 0, output: u.output_tokens || 0, cacheRead: u.cache_read_input_tokens || 0, cacheWrite: u.cache_creation_input_tokens || 0, cost: +this.cost(u).toFixed(6) });
       if (res.stop_reason === 'refusal') throw new Error("The elves couldn't write that one. Try different words.");
+      if (schema && res.stop_reason === 'max_tokens') throw new Error('The elves ran out of paper on that one. Try a shorter request.');
       if (schema) { if (!res.parsed_output) throw new Error('The elves scrambled the letter. Try again.'); return res.parsed_output; }
       return res.content.filter(b => b.type === 'text').map(b => b.text).join('').trim();
     } catch (e) {
@@ -186,7 +188,9 @@ Write the review in 1 or 2 sentences (max 45 words) that read well out loud. Be 
     const raw = await this.call({
       feature: 'workshop',
       schema: GAME_SCHEMA,
-      maxTokens: 2500,
+      // 2500 cut a 12-question trivia game off mid-answer on the Pi (stop: max_tokens). 8000 output
+      // tokens is at most $0.004 per game at Haiku prices.
+      maxTokens: 8000,
       prompt: `The family asks the elves to build this game: "${request}"
 Players in the room: ${names.join(', ') || '(not given)'}.
 ${notes.length ? `Things the family told you about themselves (the ONLY facts you may use about them; never invent others):\n${notes.map(f => '- ' + f).join('\n')}` : 'You know nothing about the family beyond their names, so do not invent facts about them.'}
