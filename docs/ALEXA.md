@@ -74,9 +74,12 @@ Amazon's servers call your Pi, so the Pi needs one public HTTPS address. Tailsca
 
 1. In the Tailscale admin page, make sure HTTPS Certificates and Funnel are enabled for your tailnet.
 2. On the Pi, run:
-   `sudo tailscale funnel --bg --set-path /alexa/skill http://127.0.0.1:47925/alexa/skill`
+   `sudo tailscale funnel --bg 47925`
+   (Amazon only calls port 443, which is also where the iPad app lives. That's safe: the server refuses every
+   public request except `/alexa/skill`. Requests from your own devices carry your Tailscale identity and work as normal.)
 3. Run `tailscale funnel status` and copy the address. It looks like `https://pi-name.tailnet-name.ts.net`.
 4. Your skill URL is that address plus `/alexa/skill`.
+5. Check from a phone on cellular (not on your Tailscale): the address itself should say "Private"; that's correct.
 
 ### Create the skill
 
@@ -102,7 +105,18 @@ To pin the ID yourself, copy it from the Endpoint page ("Your Skill ID") and put
 
 ### Phrases
 
-Start every phrase with "Alexa, ask North Pole to ..." or open it with "Alexa, open North Pole" and then say them.
+Start every phrase with "Alexa, ask North Pole ..." or open it with "Alexa, open North Pole" and then say them.
+
+The AI elves (need the Claude key in Setup; Alexa answers and the TV shows it):
+- "dear Santa, how do the reindeer fly?" (any question after "dear Santa")
+- "a report card for Grandma"
+- "tell us a story"
+
+The TV:
+- "turn on the TV" (turns it on and switches to the Pi), "turn off the TV"
+- "show the Santa tracker on the TV", "show the countdown", "show the yule log", "show the nice list"
+
+Everything else:
 
 1. "tell me a joke"
 2. "how many sleeps until Christmas"

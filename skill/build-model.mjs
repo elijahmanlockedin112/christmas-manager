@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { COLORS, EFFECTS, SONGS, SONG_SYNONYMS, GAMES, CHANNELS, slugify } from '../server/alexa-skill.mjs';
+import { COLORS, EFFECTS, SONGS, SONG_SYNONYMS, GAMES, CHANNELS, TV_SCENES, slugify } from '../server/alexa-skill.mjs';
 
 const slot = (name, type) => ({ name, type });
 const intents = [
@@ -27,6 +27,13 @@ const intents = [
   { name: 'GoodnightIntent', samples: ['goodnight', 'good night', 'goodnight tree', 'say goodnight', 'time for bed', 'bedtime', 'good night santa', "it's bedtime", 'tuck in the tree'] },
   { name: 'YuleLogIntent', samples: ['light the yule log', 'yule log', 'put on the yule log', 'start the yule log', 'fireplace on the tv', 'show the yule log', 'burn the yule log', 'turn on the yule log'] },
   { name: 'RadioIntent', slots: [slot('channel', 'RADIO_CHANNEL')], samples: ['play christmas radio', 'play the radio', 'start the radio', 'turn on christmas music', 'play {channel} radio', 'put on the radio', 'play christmas music', 'tune the radio to {channel}'] },
+  // AMAZON.SearchQuery needs a carrier phrase: "Alexa, ask North Pole: dear Santa, how do reindeer fly?"
+  { name: 'AskSantaIntent', slots: [slot('question', 'AMAZON.SearchQuery')], samples: ['dear santa {question}', 'ask santa {question}', 'santa {question}', 'hey santa {question}', 'question for santa {question}', 'i want to ask santa {question}', 'tell santa {question}'] },
+  { name: 'ReportCardIntent', slots: [slot('name', 'AMAZON.FirstName')], samples: ['report card for {name}', 'a report card for {name}', 'make a report card for {name}', 'elf report card for {name}', 'give {name} a report card', 'grade {name}', 'how did {name} do this year', "write {name}'s report card", "{name}'s report card"] },
+  { name: 'StoryIntent', samples: ['tell us a story', 'tell a story', 'tell me a story', 'story time', 'tell us a christmas story', 'tell a christmas story', 'make up a story', 'christmas story', "it's story time", 'read us a story'] },
+  { name: 'TvOnIntent', samples: ['turn on the tv', 'turn the tv on', 'tv on', 'switch on the tv', 'put it on the tv', 'start the tv', 'wake up the tv'] },
+  { name: 'TvOffIntent', samples: ['turn off the tv', 'turn the tv off', 'tv off', 'switch off the tv', 'shut off the tv', 'put the tv to sleep'] },
+  { name: 'TvSceneIntent', slots: [slot('scene', 'TV_SCENE')], samples: ['show the {scene} on the tv', 'put the {scene} on the tv', 'show {scene}', 'put on the {scene}', 'tv show the {scene}', 'switch the tv to the {scene}', 'show the {scene}'] },
 ];
 
 const val = (id, name, syn = []) => ({ id, name: { value: name, ...(syn.length ? { synonyms: syn } : {}) } });
@@ -36,6 +43,7 @@ const types = [
   { name: 'SONG', values: SONGS.map((s) => val(slugify(s), s, SONG_SYNONYMS[s] || [])) },
   { name: 'GAME', values: GAMES.map((g) => val(g.id, g.name, g.syn)) },
   { name: 'RADIO_CHANNEL', values: CHANNELS.map((c) => val(c.id, c.name, c.syn)) },
+  { name: 'TV_SCENE', values: TV_SCENES.map((s) => val(s.id, s.name, s.syn)) },
 ];
 
 const model = { interactionModel: { languageModel: { invocationName: 'north pole', intents, types } } };

@@ -275,6 +275,100 @@
             "play christmas music",
             "tune the radio to {channel}"
           ]
+        },
+        {
+          "name": "AskSantaIntent",
+          "slots": [
+            {
+              "name": "question",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "dear santa {question}",
+            "ask santa {question}",
+            "santa {question}",
+            "hey santa {question}",
+            "question for santa {question}",
+            "i want to ask santa {question}",
+            "tell santa {question}"
+          ]
+        },
+        {
+          "name": "ReportCardIntent",
+          "slots": [
+            {
+              "name": "name",
+              "type": "AMAZON.FirstName"
+            }
+          ],
+          "samples": [
+            "report card for {name}",
+            "a report card for {name}",
+            "make a report card for {name}",
+            "elf report card for {name}",
+            "give {name} a report card",
+            "grade {name}",
+            "how did {name} do this year",
+            "write {name}'s report card",
+            "{name}'s report card"
+          ]
+        },
+        {
+          "name": "StoryIntent",
+          "samples": [
+            "tell us a story",
+            "tell a story",
+            "tell me a story",
+            "story time",
+            "tell us a christmas story",
+            "tell a christmas story",
+            "make up a story",
+            "christmas story",
+            "it's story time",
+            "read us a story"
+          ]
+        },
+        {
+          "name": "TvOnIntent",
+          "samples": [
+            "turn on the tv",
+            "turn the tv on",
+            "tv on",
+            "switch on the tv",
+            "put it on the tv",
+            "start the tv",
+            "wake up the tv"
+          ]
+        },
+        {
+          "name": "TvOffIntent",
+          "samples": [
+            "turn off the tv",
+            "turn the tv off",
+            "tv off",
+            "switch off the tv",
+            "shut off the tv",
+            "put the tv to sleep"
+          ]
+        },
+        {
+          "name": "TvSceneIntent",
+          "slots": [
+            {
+              "name": "scene",
+              "type": "TV_SCENE"
+            }
+          ],
+          "samples": [
+            "show the {scene} on the tv",
+            "put the {scene} on the tv",
+            "show {scene}",
+            "put on the {scene}",
+            "tv show the {scene}",
+            "switch the tv to the {scene}",
+            "show the {scene}"
+          ]
         }
       ],
       "types": [
@@ -982,6 +1076,93 @@
                   "frisko",
                   "christmas in san francisco",
                   "xmas in frisko"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TV_SCENE",
+          "values": [
+            {
+              "id": "home",
+              "name": {
+                "value": "home",
+                "synonyms": [
+                  "home screen",
+                  "main screen",
+                  "the tree screen",
+                  "start screen"
+                ]
+              }
+            },
+            {
+              "id": "countdown",
+              "name": {
+                "value": "countdown",
+                "synonyms": [
+                  "the countdown",
+                  "christmas countdown",
+                  "clock"
+                ]
+              }
+            },
+            {
+              "id": "santa",
+              "name": {
+                "value": "santa tracker",
+                "synonyms": [
+                  "santa",
+                  "the santa tracker",
+                  "tracker",
+                  "santa map",
+                  "the globe"
+                ]
+              }
+            },
+            {
+              "id": "yule",
+              "name": {
+                "value": "yule log",
+                "synonyms": [
+                  "fire",
+                  "fireplace",
+                  "the fire",
+                  "the fireplace"
+                ]
+              }
+            },
+            {
+              "id": "nicelist",
+              "name": {
+                "value": "nice list",
+                "synonyms": [
+                  "the nice list",
+                  "nice list wall",
+                  "photos",
+                  "the photos"
+                ]
+              }
+            },
+            {
+              "id": "advent",
+              "name": {
+                "value": "advent calendar",
+                "synonyms": [
+                  "advent",
+                  "advent door",
+                  "calendar"
+                ]
+              }
+            },
+            {
+              "id": "tree",
+              "name": {
+                "value": "tree",
+                "synonyms": [
+                  "the tree",
+                  "tree mirror",
+                  "lights"
                 ]
               }
             }

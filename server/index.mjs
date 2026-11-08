@@ -716,6 +716,15 @@ const actions = {
     if (a.read !== false) alexaRead(`${out.title}. ${out.story.replace(/\[\[|\]\]/g, '')}`);
     return { ok: true, ...out };
   },
+  async 'ai.story'(a) {
+    const names = (state.players || []).map(p => p.name).slice(0, 8);
+    const pool = ['a runaway sled', 'a sneezing reindeer', 'forty-seven marshmallows', 'a tiny top hat', 'a singing toaster', 'a snowman with a cold', 'a glitter explosion', 'a confused penguin', 'a lost mitten', 'a jingling sock', 'a candy cane sword', 'a very loud bell'];
+    const words = pool.sort(() => Math.random() - 0.5).slice(0, 4);
+    const out = await app.ai.story({ names, words });
+    showAi('madlibs', { title: out.title, story: out.story });
+    if (a.read !== false) alexaRead(`${out.title}. ${out.story}`);
+    return { ok: true, ...out };
+  },
   async 'ai.askSanta'(a) {
     const question = String(a.question || '').trim().slice(0, 300);
     if (!question) throw new Error('Type a question for Santa.');
@@ -756,9 +765,24 @@ function qrSvg(text) {
 }
 const PAGES = { '/': 'web/index.html', '/tv': 'web/tv.html', '/play': 'web/play.html', '/charades': 'web/charades.html' };
 
+// Public-traffic guard. If the Pi's Tailscale ever exposes this server to the internet (Funnel, for the
+// Alexa skill), those requests arrive from tailscaled on 127.0.0.1 WITH X-Forwarded-For but WITHOUT a
+// Tailscale-User-Login identity (Serve adds that for the family's own devices and strips any spoofed copy).
+// Such requests may reach only the Alexa skill endpoint. The TV kiosk (local, no X-Forwarded-For) and
+// LAN devices are unaffected.
+export function isPublic(req) {
+  const ra = req.socket?.remoteAddress || '';
+  const local = ra === '127.0.0.1' || ra === '::1' || ra === '::ffff:127.0.0.1';
+  return local && !!req.headers['x-forwarded-for'] && !req.headers['tailscale-user-login'];
+}
+const PUBLIC_OK = new Set(['/alexa/skill']);
+app.isPublic = isPublic;
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   let p; try { p = decodeURIComponent(url.pathname); } catch { res.writeHead(400); res.end('Bad URL'); return; }
+  if (isPublic(req) && !PUBLIC_OK.has(p)) { res.writeHead(403, { 'content-type': 'text/plain' }); res.end('Private'); return; }
+  if (p === '/api/whoami') return sendJson(res, { public: isPublic(req), via: req.headers['x-forwarded-for'] ? 'proxy' : 'direct', user: req.headers['tailscale-user-login'] ? 'tailnet member' : null });
   try {
     for (const r of app.routes) {
       if (r.method === req.method && (r.path === p || (r.path.endsWith('*') && p.startsWith(r.path.slice(0, -1))))) {
@@ -843,7 +867,7 @@ attachWebSocket(server, '/ws', ws => {
       catch (e) { ws.send(JSON.stringify({ type: 'result', id: m.id, ok: false, error: e.message })); }
     }
   });
-});
+}, { reject: isPublic });
 setInterval(() => { for (const c of clients) { if (Date.now() - c.ws.lastSeen > 60000) c.ws.close(); else c.ws.ping(); } }, 20000);
 
 // ---------------- optional modules (Alexa local devices + North Pole skill) ----------------

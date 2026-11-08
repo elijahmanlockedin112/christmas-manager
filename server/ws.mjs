@@ -3,10 +3,10 @@ import crypto from 'node:crypto';
 
 const GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 
-export function attachWebSocket(server, path, onConnection) {
+export function attachWebSocket(server, path, onConnection, { reject } = {}) {
   server.on('upgrade', (req, socket) => {
     const url = new URL(req.url, 'http://x');
-    if (url.pathname !== path || (req.headers.upgrade || '').toLowerCase() !== 'websocket') {
+    if (reject?.(req) || url.pathname !== path || (req.headers.upgrade || '').toLowerCase() !== 'websocket') {
       socket.destroy();
       return;
     }

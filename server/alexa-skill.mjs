@@ -88,10 +88,19 @@ export const CHANNELS = [
   { id: 'xmasinfrisko', name: 'christmas in frisko', syn: ['frisko', 'christmas in san francisco', 'xmas in frisko'] },
 ];
 
+export const TV_SCENES = [
+  { id: 'home', name: 'home', say: 'the home screen', syn: ['home screen', 'main screen', 'the tree screen', 'start screen'] },
+  { id: 'countdown', name: 'countdown', say: 'the countdown', syn: ['the countdown', 'christmas countdown', 'clock'] },
+  { id: 'santa', name: 'santa tracker', say: 'the Santa tracker', syn: ['santa', 'the santa tracker', 'tracker', 'santa map', 'the globe'] },
+  { id: 'yule', name: 'yule log', say: 'the yule log', syn: ['fire', 'fireplace', 'the fire', 'the fireplace'] },
+  { id: 'nicelist', name: 'nice list', say: 'the Nice List', syn: ['the nice list', 'nice list wall', 'photos', 'the photos'] },
+  { id: 'advent', name: 'advent calendar', say: "today's advent door", syn: ['advent', 'advent door', 'calendar'] },
+  { id: 'tree', name: 'tree', say: 'the tree', syn: ['the tree', 'tree mirror', 'lights'] },
+];
 export const INTENTS = [
   'TellJokeIntent', 'CountdownIntent', 'SantaIntent', 'TreeColorIntent', 'TreeEffectIntent', 'TreeOnIntent', 'TreeOffIntent',
   'LightShowIntent', 'StopShowIntent', 'StartGameIntent', 'AdventIntent', 'ElfNameIntent', 'PartyIntent', 'GoodnightIntent',
-  'YuleLogIntent', 'RadioIntent',
+  'YuleLogIntent', 'RadioIntent', 'AskSantaIntent', 'ReportCardIntent', 'StoryIntent', 'TvOnIntent', 'TvOffIntent', 'TvSceneIntent',
 ];
 export const BUILTIN_INTENTS = ['AMAZON.HelpIntent', 'AMAZON.StopIntent', 'AMAZON.CancelIntent', 'AMAZON.FallbackIntent'];
 
@@ -258,11 +267,58 @@ function reply(inner, { end = true, reprompt } = {}) {
   return { version: '1.0', sessionAttributes: {}, response: r };
 }
 
-const HELP = 'You can ask me to tell a joke, count the sleeps until Christmas, or find Santa. '
+const HELP = 'You can say, dear Santa, then any question. Ask for a report card for someone, or say, tell us a story. Say, turn on the TV, or show the Santa tracker on the TV. '
+  + 'You can also ask me to tell a joke, count the sleeps until Christmas, or find Santa. '
   + 'Tell the tree to change color, switch effects, or start a light show. I can also play a game, open the advent calendar, give you an elf name, or light the yule log. '
   + 'What would you like?';
 
+// AI answers must come back inside Alexa's ~8 s window; if the elves are slow, say so and let the TV show it.
+async function withinAlexaTime(promise, ms = 6500) {
+  let t;
+  const slow = new Promise(res => { t = setTimeout(() => res({ slow: true }), ms); });
+  const r = await Promise.race([promise.then(v => ({ v }), e => ({ e })), slow]);
+  clearTimeout(t);
+  return r;
+}
+const plain = (s) => esc(String(s || '').replace(/\[\[|\]\]/g, ''));
+
 const HANDLERS = {
+  async AskSantaIntent({ app, slots }) {
+    const q = slots.question?.value;
+    if (!q) return reply('What would you like to ask Santa? Say, dear Santa, then your question.', { end: false, reprompt: 'Say, dear Santa, then your question.' });
+    const r = await withinAlexaTime(app.act('ai.askSanta', { question: q, read: false }));
+    if (r.slow) return reply("Santa is writing his answer. Look at the TV!");
+    if (r.e) return reply(esc(r.e.message || "Santa's mailbox is jammed. Try again in a minute."));
+    return reply(`Ho ho ho! ${plain(r.v.answer)}`);
+  },
+  async ReportCardIntent({ app, slots }) {
+    const name = slots.name?.value;
+    if (!name) return reply('Whose report card should the elves write?', { end: false, reprompt: 'Say, a report card for, then a name.' });
+    const r = await withinAlexaTime(app.act('ai.reportCard', { name: name.charAt(0).toUpperCase() + name.slice(1), read: false }));
+    if (r.slow) return reply(`The elves are grading ${esc(name)} right now. Look at the TV!`);
+    if (r.e) return reply(esc(r.e.message || 'The elves lost their red pens. Try again.'));
+    const c = r.v.card;
+    return reply(`Here is ${esc(name)}'s elf report card. ${plain(c.title)}. ${BRK('400ms')} ${(c.grades || []).slice(0, 2).map(g => `${plain(g.subject)}: ${plain(g.grade)}.`).join(' ')} ${BRK('400ms')} Santa says: ${plain(c.santaNote)} The whole card is on the TV.`);
+  },
+  async StoryIntent({ app }) {
+    const r = await withinAlexaTime(app.act('ai.story', { read: false }), 6800);
+    if (r.slow) return reply('The elves are writing a story. It will be on the TV in a moment!');
+    if (r.e) return reply(esc(r.e.message || 'The elves ran out of ink. Try again.'));
+    return reply(`${plain(r.v.title)}. ${BRK('500ms')} ${plain(r.v.story)}`);
+  },
+  async TvOnIntent({ app }) {
+    const r = await app.act('tv.power', { on: true });
+    return reply(r.ok ? 'Turning on the TV and switching to the North Pole.' : esc(r.note || "I couldn't reach the TV."));
+  },
+  async TvOffIntent({ app }) {
+    const r = await app.act('tv.power', { on: false });
+    return reply(r.ok ? 'TV off. The tree keeps glowing.' : esc(r.note || "I couldn't reach the TV."));
+  },
+  async TvSceneIntent({ app, slots }) {
+    const sc = resolveSlot(slots.scene, TV_SCENES, (t) => t.id) || TV_SCENES[0];
+    await app.act('tv.scene', { scene: sc.id });
+    return reply(`Putting ${esc(sc.say)} on the TV.`);
+  },
   async TellJokeIntent({ app }) {
     const j = await app.act('joke.random', {});
     return reply(`${esc(j.q)} ${BRK('2s')} ${esc(j.a)} ${BRK('500ms')} ${pick(['Ho ho ho!', 'The elves are rolling on the floor!', 'Santa would be proud.'])}`);

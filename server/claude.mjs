@@ -121,6 +121,16 @@ Give it a beginning, a ridiculous middle and a happy ending at the tree.`,
       maxTokens: 2000,
     });
   }
+  story({ names, words }) {
+    return this.call({
+      feature: 'story',
+      schema: z.object({ title: z.string().describe('a funny story title, max 7 words'), story: z.string().describe('the story, 80-110 words, short sentences that read well aloud') }),
+      prompt: `Tell a short, silly bedtime-style Christmas story starring this family: ${names.join(', ') || 'the family'}.
+Work in these random things: ${words.join(', ')}.
+A beginning, a ridiculous middle and a cozy happy ending at the Christmas tree.`,
+      maxTokens: 1500,
+    });
+  }
   askSanta({ question, asker }) {
     return this.call({
       feature: 'ask-santa',
